@@ -2,26 +2,6 @@ from elixir import *
 from aspects import *
 
 
-#class PetController(Controller):
-#    def list(self):
-#        return Pet.query.all()
-#
-#    def create(self, data):
-#        Pet(**data)
-#
-#    def read(self, name):
-#        pet = Pet.get_by(name=name)
-#        return pet.as_dictionary()
-#
-#    def update(self, name, data):
-#        pet = Pet.get_by(name=name)
-#        pet.from_dictionary(data)
-#
-#    def delete(self, name):
-#        pet = Pet.get_by(name=name)
-#        pet.delete()
-
-
 class Pet(Entity):
     name = Field(Unicode(255))
     owner = ManyToOne('Owner')
@@ -112,7 +92,7 @@ class REST(Aspect):
     This aspect *MUST* be outermost in order for dispatching to work correctly.
     """
 
-    def __init__(self, next, endpoint, path, key='<int:id>', legacy=True, suffix=''):
+    def __init__(self, next, endpoint, path, legacy=True, suffix=''):
         super(REST, self).__init__(
             next, endpoint=endpoint, path=path, key=key, legacy=legacy,
             suffix=suffix,
@@ -139,17 +119,9 @@ class REST(Aspect):
 
 pet_controller = ModelController(Pet, 'name')
 
-def APIController(controller, name, path, key='id', type=None):
-    if type:
-        path_key = '<%s:%s>' % (type, name)
-    else:
-        path_key = '<%s>' % name
-    api_controller = JSON(DefaultToBasicFormat(Query(StripRequest(controller)), key))
-    api_controller = REST(api_controller, name + '_api', path, path_key)
-    return api_controller
+pet_api = JSON(DefaultToBasicFormat(Query(StripRequest(pet_controller)), 'name'))
+pet_api = REST(pet_api, 'pet_api', '/pets/[<name>]', legacy=False, suffix='.json')
 
-
-pet_api_controller = APIController(pet_controller, 'pet', '/r/pets/', 'name')
 
 html_controller = REST(HTML(Query(StripRequest(pet_controller)), 'pet'), 'pet', '/pets/', '<name>')
 

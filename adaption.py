@@ -80,10 +80,13 @@ class Adaption(object):
     """Unique type for adaptions in the FeatureBroker."""
 
     def __init__(self, from_, to):
-        self.key = (self.from_, self.to)
+        self.key = (from_, to)
 
     def __cmp__(self, other):
         return cmp(self.key, other.key)
+
+    def __hash__(self):
+        return hash(self.key)
 
     def __str__(self):
         return 'Adaption(%r, %r)' % self.key

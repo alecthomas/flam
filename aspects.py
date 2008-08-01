@@ -15,8 +15,9 @@ additional behaviour to existing objects and classes.
 ...   def fire(self):
 ...     return self.target
 
-Creating an Aspect is simple. Simply inherit from Aspect and define the methods
-to intercept. Call self.next.<method>(...) to chain to the next method.
+Creating an Aspect is simple. Inherit from Aspect and define the methods to
+intercept. To chain to the next aspect and finally the original object, call
+self.next.<method>(...):
 
 >>> class RedirectLaser(Aspect):
 ...   def fire(self):
@@ -40,6 +41,10 @@ Methods and attributes that are not intercepted are unaffected:
 'Moon'
 >>> laser.power
 11
+>>> laser.explode
+Traceback (most recent call last):
+...
+AttributeError: 'OrbitalLaser' object has no attribute 'explode'
 
 As are attribute assignments:
 
@@ -88,7 +93,7 @@ True
 """
 
 
-from inspect import isclass
+from inspect import isclass, isroutine
 
 
 def weave(cls, aspect, *args, **kwargs):

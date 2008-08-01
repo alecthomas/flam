@@ -10,7 +10,6 @@ class Pet(Entity):
 class PetController(Controller):
     def list(self):
         query = Pet.query()
-        return adapt(query, JSONResponse)
         args = req.args
         q = args.get('q', '')
         if q:

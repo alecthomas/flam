@@ -1,5 +1,5 @@
-"""Provide class-level "statements", functions applied to new classes on
-creation.
+"""Provide class-level "statements". That is, functions applied to new classes
+on creation.
 """
 
 
@@ -24,13 +24,13 @@ def statement(function):
     ...   print cls
     >>> echo = statement(echo)
     >>> echo  # doctest: +ELLIPSIS
-    <function decorate at ...>
+    <function statement at ...>
     """
-    def decorate(*args, **kwargs):
+    def statement(*args, **kwargs):
         def apply(cls):
             return function(cls, *args, **kwargs)
         _statements.append(apply)
-    return decorate
+    return statement
 
 
 class StatementMeta(type):

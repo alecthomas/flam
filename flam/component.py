@@ -20,7 +20,7 @@ class Component(object):
 
 @statement
 def implements(cls, *args):
-    print args
+    print cls, args
     cls._implements = args
 
 

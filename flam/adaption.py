@@ -37,7 +37,7 @@ Adding new formats is easy:
 ...   else:
 ...     return ''
 
-Register adaptions from multiple source types by passing a sequence to adapts:
+Register adaptions from multiple source types by passing a sequence to adapt:
 
 >>> adapter.adapts((list, tuple), 'application/x-wiki', list_to_wiki)
 
@@ -78,6 +78,8 @@ class InvalidAdaption(Error):
 
 class Adaption(object):
     """Unique type for adaptions in the FeatureBroker."""
+
+    __slots__ = ['key']
 
     def __init__(self, from_, to):
         self.key = (from_, to)

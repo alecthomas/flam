@@ -16,12 +16,12 @@ Define a HTTP handler:
 ...     raise ValueError
 ...   return 'fake HTTP content'
 
-Register them:
+Register it:
 
 >>> uri_handlers = FeatureBroker()
->>> uri_handlers.provide(['handlers'], http_handler)
+>>> uri_handlers.append('handlers', http_handler)
 
-Notice how the feature key is a list. This indicates to the FeatureBroker that
+Note that the feature key is a list. This indicates to the FeatureBroker that
 the feature should be an extensible sequence.
 
 We then provide a convenience function for accessing them:
@@ -53,7 +53,7 @@ Fortunately, we can easily add support for it:
 ...   if not uri.startswith('ftp://'):
 ...     raise ValueError
 ...   return 'fake FTP content'
->>> uri_handlers.provide(['handlers'], ftp_handler)
+>>> uri_handlers.append('handlers', ftp_handler)
 
 And try again:
 
@@ -61,7 +61,7 @@ And try again:
 'fake FTP content'
 
 
-Based on:
+Inspired by:
     http://aspn.activestate.com/ASPN/Cookbook/Python/Recipe/413268
 """
 
@@ -85,6 +85,31 @@ class Sequence(list):
     """Marker class for discriminating between feature lists and features."""
 
 
+class deferred(object):
+    """Defer a callable until it is "required".
+
+    >>> features = FeatureBroker()
+    >>> def counter():
+    ...   counter.count += 1
+    ...   return counter.count
+    >>> counter.count = 0
+    >>> features.provide('counter', deferred(counter))
+    >>> features.require('counter')
+    1
+    >>> features.require('counter')
+    2
+    """
+
+    def __init__(self, callback, *args, **kwargs):
+        self.callback = callback
+        self.args = args
+        self.kwargs = kwargs
+
+    def __call__(self):
+        """Call the deferred object."""
+        return self.callback(*self.args, **self.kwargs)
+
+
 class FeatureBroker(object):
     """Register and locate features.
 
@@ -97,26 +122,50 @@ class FeatureBroker(object):
     >>> features.require('name')
     'Bob Smith'
 
-    Or callbacks:
+    Features may also be classes, which is useful with "interfaces". First,
+    define our interface:
+
+    >>> class INameProvider(object):
+    ...   def get_names(self): pass
+
+    Then some implementations:
+
+    >>> class AngloNameProvider(object):
+    ...   def get_names(self):
+    ...     return ['Smith', 'Bathingthwaite']
+    >>> class ChineseNameProvider(object):
+    ...   def get_names(self):
+    ...     return ['Zhang', 'Wu']
+
+    Declare them as a feature, keyed on the interface class:
+
+    >>> features.sequence(INameProvider, [AngloNameProvider(),
+    ...                                   ChineseNameProvider()])
+
+    Then use the implementations:
+
+    >>> for provider in features.require(INameProvider):
+    ...   for name in provider.get_names():
+    ...     print name
+    Smith
+    Bathingthwaite
+    Zhang
+    Wu
+
+    Functions may also be called when "required" by wrapping them in a
+    :class:`deferred` object:
 
     >>> def counter():
     ...   counter.count += 1
     ...   return counter.count
     >>> counter.count = 0
-    >>> features.deferred('counter', counter)
+    >>> features.provide('counter', deferred(counter))
     >>> features.require('counter')
     1
     >>> features.require('counter')
     2
 
-    Finally, if the feature identifier is a single-element list, the value of
-    the feature will be a sequence:
 
-    >>> features.provide(['users'], 'Bob')
-    >>> features.provide(['users'], 'Barry')
-    >>> features.deferred(['users'], lambda: 'Barnaby')
-    >>> features.require(['users'])
-    ['Bob', 'Barry', 'Barnaby']
     """
 
     def __init__(self):
@@ -126,18 +175,13 @@ class FeatureBroker(object):
     def require(self, feature):
         """Require a feature.
 
-        :param feature: A feature can be any orderable, hashable object
+        :param feature: A feature can be any orderable, hashable object,
                         including classes, builtin type values, etc.
 
         :returns: The required feature.
 
         :raises UnknownFeature: If the feature could not be found.
         """
-        if isinstance(feature, list):
-            feature = feature[0]
-            sequence = True
-        else:
-            sequence = False
         try:
             result = self._features[feature]
             if isinstance(result, Sequence):
@@ -156,44 +200,49 @@ class FeatureBroker(object):
         >>> features.require('afeature')
         'A Feature'
 
-        Or as a sequence:
+        Or as a callable:
 
-        >>> features.provide(['somefeatures'], 'One Feature')
-        >>> features.provide(['somefeatures'], 'Two Features')
-        >>> features.require('somefeatures')
-        ['One Feature', 'Two Features']
+        >>> def full_name(first_name, surname):
+        ...   return '%s %s' % (first_name, surname)
+        >>> features.provide('name', lambda: full_name('Philleas', 'Phogg'))
 
         :param feature: A key uniquely identifying the feature. If this is a
                         list, the feature will be assumed to be a sequence,
                         with the first element the feature key.
         :param what: The object tied to the feature key.
         """
-        def call():
-            return what
-        self._provide(feature, call)
+        self._provide(feature, what)
 
-    def deferred(self, feature, what, *args, **kwargs):
-        """Register a deferred callable as a feature.
-
-        Any positional/keyword arguments supplied to :meth:`deferred` will be
-        passed to the callable when it is "required".
+    def sequence(self, feature, what):
+        """Extend a feature sequence with an iterable.
 
         >>> features = FeatureBroker()
-        >>> def full_name(first_name, surname):
-        ...   return '%s %s' % (first_name, surname)
-        >>> features.deferred('name', full_name, 'Philleas', surname='Phogg')
-        >>> features.require('name')
-        'Philleas Phogg'
-
-        :param feature: See :meth:`provide` for details.
-        :param what: Function to call when the feature is :meth:`require`'d.
-        :param args: Positional arguments to pass through to `what` when
-                     calling.
-        :param kwargs: Keyword arguments to pass to `what`.
+        >>> features.sequence('countries', ['Australia', 'New Zealand'])
+        >>> features.sequence('countries', ['Czech', 'Slovakia'])
+        >>> features.require('countries')
+        ['Australia', 'New Zealand', 'Czech', 'Slovakia']
         """
-        def call():
-            return what(*args, **kwargs)
-        self._provide(feature, call)
+        for i in what:
+            self._provide(feature, i, sequence=True)
+
+    def append(self, feature, what):
+        """Append a feature to a feature sequence.
+
+        >>> features = FeatureBroker()
+        >>> features.append('somefeatures', 'One Feature')
+        >>> features.append('somefeatures', 'Two Features')
+        >>> features.require('somefeatures')
+        ['One Feature', 'Two Features']
+
+        Appending to a non-sequence is invalid:
+
+        >>> features.provide('name', 'Barry')
+        >>> features.append('name', 'White')
+        Traceback (most recent call last):
+        ...
+        Error: Feature 'name' can not be redeclared.
+        """
+        self._provide(feature, what, sequence=True)
 
     def remove(self, feature, element=None):
         """Unregister a feature.
@@ -210,13 +259,12 @@ class FeatureBroker(object):
             del self._features[feature]
 
     # Internal methods
-    def _provide(self, feature, callback):
+    def _provide(self, feature, what, sequence=False):
         """Register function as feature."""
-        if isinstance(feature, list):
-            feature = feature[0]
-            sequence = True
+        if isinstance(what, deferred):
+            callback = what
         else:
-            sequence = False
+            callback = lambda: what
         try:
             current = self._features[feature]
             if isinstance(current, Sequence):
@@ -265,7 +313,8 @@ class Require(object):
 
 features = FeatureBroker()
 provide = features.provide
-deferred = features.deferred
+sequence = features.sequence
+append = features.append
 require = features.require
 remove = features.remove
 

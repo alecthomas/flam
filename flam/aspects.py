@@ -1,7 +1,7 @@
 """A simple Aspect-Oriented Programming API.
 
-This API implements a clean, non-intrusive method of transparently applying
-additional behaviour to existing objects and classes.
+This API implements a clean, non-intrusive method of applying additional
+behaviour to existing objects, classes and functions.
 
 >>> class OrbitalLaser(object):
 ...   power = 11
@@ -36,9 +36,17 @@ Then apply the aspect to the object:
 
 Methods and attributes that are not intercepted are unaffected:
 
+>>> hasattr(laser, 'fire')
+True
+>>> hasattr(laser, 'aim')
+True
+>>> hasattr(laser, 'target')
+False
 >>> laser.aim('Moon')
 >>> laser.target
 'Moon'
+>>> hasattr(laser, 'target')
+True
 >>> laser.power
 11
 >>> laser.explode
@@ -74,13 +82,13 @@ Aspects can also be applied to classes:
 >>> laser.power
 10
 
-As with applying aspects to instances, applying to classes does not modify the
+Note: As with instances, applying aspects to classes does not modify the
 original class. Due to this, aspect-decorated objects do not conform to "is-a"
 relationship checks. That is, isinstance(decorated, cls) and
 issubclass(decorated_cls, cls) will not work.
 
 That being said, the "weave" function can be used to inject aspects into a
-class directly:
+class directly (NOTE: Not yet implemented):
 
 >>> OrbitalLaser = RealOrbitalLaser
 >>> OrbitalLaser = weave(OrbitalLaser, RedirectLaser)
@@ -90,6 +98,26 @@ True
 >>> laser.aim('Moon')
 >>> laser.fire()  # doctest: +SKIP
 'Sun'
+
+To apply aspects to functions rather than objects or classes, intercept the
+__call__ function:
+
+>>> def fire_laser(at, power=11):
+...   return 'Fired laser with power %i at %s' % (power, at)
+>>> class DecreaseLaserPower(Aspect):
+...   def __call__(self, at):
+...     return self.next(at, power=5)
+
+Then apply the aspect as usual:
+
+>>> lower_powered_laser = DecreaseLaserPower(fire_laser)
+>>> fire_laser('Moon')
+'Fired laser with power 11 at Moon'
+>>> lower_powered_laser('Moon')
+'Fired laser with power 5 at Moon'
+
+This doesn't have any real advantages over decorators, but it may be nice
+for uniformity.
 """
 
 
@@ -125,6 +153,8 @@ class AspectBase(object):
             object.__setattr__(self, key, value)
 
     def __getattr__(self, key):
+        assert 'next' in self.__dict__, \
+            'AspectBase(next) must be called before accessing aspect attributes'
         if key in self.__dict__:
             return object.__getattr__(self, key)
         next = getattr(self.next, key)

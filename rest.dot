@@ -1,0 +1,17 @@
+digraph G {
+    BaseController [label = "Basic CRUD\noperations on\nthe model"]
+    QueryFilter [label = "?q=<filter>"]
+    DetailedFormat [label = "?format=detailed"]
+    HTML [label = "HTML templates and\nlogic for handling forms"]
+    JSON [label = "JSON-encode responses,\nand decode requests"]
+    REST [label = "RESTful\npresentation"]
+
+
+    BaseController -> QueryFilter
+
+    QueryFilter -> DetailedFormat [label = "JSON"]
+    QueryFilter -> HTML [label = "HTML"]
+
+    DetailedFormat -> JSON -> REST;
+    HTML -> REST;
+}

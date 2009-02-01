@@ -139,8 +139,8 @@ class FeatureBroker(object):
 
     Declare them as a feature, keyed on the interface class:
 
-    >>> features.sequence(INameProvider, [AngloNameProvider(),
-    ...                                   ChineseNameProvider()])
+    >>> features.extend(INameProvider, [AngloNameProvider(),
+    ...                                 ChineseNameProvider()])
 
     Then use the implementations:
 
@@ -206,23 +206,21 @@ class FeatureBroker(object):
         ...   return '%s %s' % (first_name, surname)
         >>> features.provide('name', lambda: full_name('Philleas', 'Phogg'))
 
-        :param feature: A key uniquely identifying the feature. If this is a
-                        list, the feature will be assumed to be a sequence,
-                        with the first element the feature key.
+        :param feature: A key uniquely identifying the feature.
         :param what: The object tied to the feature key.
         """
         self._provide(feature, what)
 
-    def sequence(self, feature, what):
+    def extend(self, feature, sequence):
         """Extend a feature sequence with an iterable.
 
         >>> features = FeatureBroker()
-        >>> features.sequence('countries', ['Australia', 'New Zealand'])
-        >>> features.sequence('countries', ['Czech', 'Slovakia'])
+        >>> features.extend('countries', ['Australia', 'New Zealand'])
+        >>> features.extend('countries', ['Czech', 'Slovakia'])
         >>> features.require('countries')
         ['Australia', 'New Zealand', 'Czech', 'Slovakia']
         """
-        for i in what:
+        for i in sequence:
             self._provide(feature, i, sequence=True)
 
     def append(self, feature, what):
@@ -313,7 +311,7 @@ class Require(object):
 
 features = FeatureBroker()
 provide = features.provide
-sequence = features.sequence
+extend = features.extend
 append = features.append
 require = features.require
 remove = features.remove

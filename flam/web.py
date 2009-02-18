@@ -183,17 +183,17 @@ class CallbackDecorator(object):
     """Register a callback via a decorator."""
 
     def __init__(self):
-        self.callback = None
+        self.callbacks = []
 
     def __call__(self, callback):
         """Register callback."""
-        assert not self.callback
-        self.callback = callback
+        self.callbacks.append(callback)
 
     def dispatch(self, *args, **kwargs):
-        if not self.callback:
+        if not self.callbacks:
             return None
-        return self.callback(*args, **kwargs)
+        for callback in self.callbacks:
+            callback(*args, **kwargs)
 
 
 context_setup = CallbackDecorator()
@@ -266,6 +266,7 @@ def load_static_map(mapping_file):
             v, k = line.strip().split(None, 1)
             map[k] = v
     return map
+
 
 def run_server(host='localhost', port=0xdead, static_path=None, debug=False,
                log_level=logging.WARNING, template_paths=None,

@@ -21,10 +21,10 @@ import simplejson
 
 
 __all__ = [
-    'expose', 'url_for', 'run_server', 'static_resource', 'json', 'Request',
-    'Response', 'application', 'local', 'html', 'request', 'register', 'href',
-    'redirect', 'static', 'flash', 'INFO', 'WARNING', 'ERROR','context_setup',
-    'request_setup', 'request_teardown',
+    'expose', 'run_server', 'static_resource', 'json', 'Request', 'Response',
+    'application', 'local', 'html', 'request', 'href', 'redirect', 'static',
+    'flash', 'INFO', 'WARNING', 'ERROR','context_setup', 'request_setup',
+    'request_teardown',
     ]
 
 
@@ -41,7 +41,6 @@ view_map = {}
 template_loader = None
 # Session store
 session_store = None
-default_context = {}
 
 
 # flash() levels
@@ -76,6 +75,27 @@ class Request(Request):
     def json(self):
         return simplejson.loads(self.data)
 
+
+class CallbackDecorator(object):
+    """Register a callback via a decorator."""
+
+    def __init__(self):
+        self.callbacks = []
+
+    def __call__(self, callback):
+        """Register callback."""
+        self.callbacks.append(callback)
+
+    def dispatch(self, *args, **kwargs):
+        if not self.callbacks:
+            return None
+        for callback in self.callbacks:
+            callback(*args, **kwargs)
+
+
+context_setup = CallbackDecorator()
+request_setup = CallbackDecorator()
+request_teardown = CallbackDecorator()
 
 
 class Application(object):
@@ -152,8 +172,20 @@ def flash(message, type=INFO):
     flash_message['type'] = type
 
 
+@context_setup
+def default_context_setup(context):
+    """Populate the default template render context."""
+    context['href'] = href
+    context['static'] = static
+    context['session'] = request.session
+
+
 def expose(rule=None, **kw):
-    """Expose a function as a routing endpoint."""
+    """Expose a function as a routing endpoint.
+
+    If arguments are omitted, the wrapped function name will be used as the
+    rule name and routing path.
+    """
     def decorate(f):
         endpoint = f.__name__
         kw.setdefault('endpoint', endpoint)
@@ -168,64 +200,25 @@ def expose(rule=None, **kw):
     return decorate
 
 
-def register(what, name=None):
-    """Register an object in the default template context.
-
-    (Can be used as a decorator.)
-    """
-    if name is None:
-        name = what.__name__
-    default_context[name] = what
-    return what
-
-
-class CallbackDecorator(object):
-    """Register a callback via a decorator."""
-
-    def __init__(self):
-        self.callbacks = []
-
-    def __call__(self, callback):
-        """Register callback."""
-        self.callbacks.append(callback)
-
-    def dispatch(self, *args, **kwargs):
-        if not self.callbacks:
-            return None
-        for callback in self.callbacks:
-            callback(*args, **kwargs)
-
-
-context_setup = CallbackDecorator()
-request_setup = CallbackDecorator()
-request_teardown = CallbackDecorator()
-
-
 class Href(object):
     """A convenience object for referring to endpoints."""
     def __getattr__(self, endpoint):
         def wrapper(_external=False, **values):
-            return url_for(endpoint, _external=_external, **values)
+            if callable(endpoint):
+                endpoint = endpoint.__name__
+            return local.url_adapter.build(endpoint, values, force_external=_external)
         return wrapper
 
+href = Href()
 
-href = register(Href(), name='href')
 
-@register
 def static(filename):
     """Convenience function for referring to static content."""
     return href.static(file=filename)
 
 
-def url_for(endpoint, _external=False, **values):
-    """Return the URL for an endpoint."""
-    if callable(endpoint):
-        endpoint = endpoint.__name__
-    return local.url_adapter.build(endpoint, values, force_external=_external)
-
-
 def static_resource(filename):
-    """Serve a file."""
+    """Serve a static resource."""
     mime_type, encoding = mimetypes.guess_type(filename)
     try:
       fd = open(filename)
@@ -245,7 +238,7 @@ def json(data):
 def html(template, **data):
     """Render a HTML template."""
     tmpl = template_loader.load(template)
-    context = dict(default_context)
+    context = {}
     context_setup.dispatch(context)
     context.update(data)
     stream = tmpl.generate(

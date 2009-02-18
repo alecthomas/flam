@@ -92,7 +92,10 @@ def _to_optparse_option(config, config_option):
 
 
 def parse_args(argv=None, config=None, name=None, version=None):
-    """Bootstrap a main function with command line and configuration options.
+    """Parse command line arguments.
+
+    Arguments are constructed from Options on a Configuration object. Each
+    Option corresponds to a
 
     :param argv: sys.argv (or equivalent)
     :param config: flam.config.Configuration object or filename.

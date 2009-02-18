@@ -1,32 +1,100 @@
-Built around REST.
+A minimalist Python application framework.
 
-Use context-local globals to avoid passing stuff like "req" around
-everywhere.
+Flam relies on Werkzeug and Genshi.
 
-Direct correlation between model, forms (or data input) and REST interface.
-Automatically expose via a JSON/XML API.
+Convenience functions exist for many common operations:
 
-Data model objects will know how to link to themselves via URLS, and there will
-be a class method on each model to allow referencing arbitrary models.
+    html(template, **data)
+        Render a Genshi template.
 
-  class Host(Entity):
-    hostname = Field(Unicode(128), resource_key=True)
-    owner = Field(Unicode(128))
+    json(data)
+        Render JSON.
 
-    def list(self, query):
-      return query
+    redirect(url)
+        Issue a HTTP redirect.
 
-    def read(self, host):
-      return host
+    flash(message, type=type)
+        Set the "flash" session variable. This can be used by handlers to
+        send user messages, including after redirects.
 
-    def 
+Decorators are used extensively to register hooks in Flam's web framework. The
+most useful of these is probably @expose, but they all have their use.
 
-  >>> print Host.json.href.read('host.example.com')
-  '/j/hosts/host.example.com'
-  >>> print Host.json.href()
+Register login() as the request handler for /login:
+
+    @expose
+    def login():
+        ...
+
+Register user() as the request handler for /user/<username>.
+
+    @expose('/user/<username>')
+    def user(username):
+        ...
+
+Request handlers can return Werkzeug Response objects or Genshi streams.
+
+Populate the Genshi template context per-render:
+
+    @context_setup
+    def my_context_setup(context):
+        context['name'] = get_username()
+
+Setup the system for a new request:
+
+    @request_setup
+    def my_request_setup():
+        request.username = request.session.get('username', None)
+
+Tear down any per-request state:
+
+    @request_teardown
+    def my_request_teardown():
+        del request.username
+
+URLs can be reconstructed with the href object. Each attribute on the object is
+a callable representing a routing endpoint name, keywords arguments fill in the
+routing path parameters:
+
+    @expose('/user/<username>')
+    def user(username):
+        return html('user.html', username=username)
+
+    >>> href.user(username='foo')
+    '/user/foo'
 
 
-HTML built from widgets. Makes replacing fragments from AJAX easier.
+An example:
 
-Validation built in to models and forms. Automatic form filling and addition of
-validation errors.
+    from flam.web import *
+    from genshi.filters import HTMLFormFiller
+
+    # Specify path for a handler
+    @expose('/')
+    def index():
+        return html('index.html')
+
+    # If a path is not provided, the name of the function is used (/home)
+    @expose
+    def home():
+        return html('home.html')
+
+    @expose
+    def login():
+        form = request.form
+        if not form:
+            return html('login.html')
+
+        username = form['username']
+        password = form['password']
+        if our_authentication(username, password):
+            request.session['username'] = username
+        else:
+            flash('Authentication failed.', type=ERROR)
+            return html('login.html') | HTMLFormFiller(data=form)
+        flash('Welcome!')
+        return redirect(href.home())
+
+    @expose('/api/users')
+    def api_users():
+        return json(our_user_list())

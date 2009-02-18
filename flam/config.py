@@ -31,11 +31,21 @@ ListOption
 URIOption
 FeatureOption
 OrderedFeaturesOption
+set_global_config
 """.split()
+
+
+_config = None
+
+def set_global_config(config):
+    """Set default global config."""
+    global _config
+    _config = config
 
 
 class Configuration(dict):
     """Abstraction layer for a basic key/value configuration file format."""
+
     def __init__(self, filename=None):
         super(Configuration, self).__init__()
         self.filename = filename
@@ -109,13 +119,13 @@ class Option(object):
 
     registry = {}
 
-    def __init__(self, name, default=None, doc='', metavar=None):
+    def __init__(self, name, default=None, help='', metavar=None):
         """Create a new Option.
 
         Args:
             name: Name of the option.
             default: Default value.
-            doc: Documentation string.
+            help: Documentation string.
             metavar: Name of variable to display in help.
         """
         self.name = name
@@ -123,22 +133,21 @@ class Option(object):
             self.default = self.cast(default)
         else:
             self.default = default
-        self.__doc__ = doc
+        self.__doc__ = help
         self.metavar = metavar
         self.registry[name] = self
 
     def __get__(self, instance, owner):
         if instance is None:
             return self
-        engine = getattr(instance, 'e', None)
-        if engine is not None:
-            config = instance.e.config
+        config = getattr(instance, '_config', _config)
+        if config is not None:
             return self.accessor(config, self.name, self.default)
         else:
             return self.default
 
     def __set__(self, instance, value):
-        config = instance.e.config
+        config = getattr(instance, '_config', config)
         config.set(self.name, unicode(value))
 
     def accessor(self, config, name, default):
@@ -164,11 +173,11 @@ class FloatOption(Option):
 
 
 class ListOption(Option):
-    def __init__(self, name, default=None, doc='', metavar=None, sep=',',
+    def __init__(self, name, default=None, help='', metavar=None, sep=',',
                  keep_empty=False):
         self.sep = sep
         self.keep_empty = keep_empty
-        Option.__init__(self, name, default, doc, metavar)
+        Option.__init__(self, name, default, help, metavar)
 
     def cast(self, value):
         return to_list(value, self.sep, self.keep_empty)
@@ -180,8 +189,8 @@ class URIOption(Option):
 
 
 class FeatureOption(Option):
-    def __init__(self, name, feature, default=None, doc='', metavar=None):
-        Option.__init__(self, name, default, doc, metavar)
+    def __init__(self, name, feature, default=None, help='', metavar=None):
+        Option.__init__(self, name, default, help, metavar)
         self.feature = feature
 
     def __get__(self, instance, owner):
@@ -206,8 +215,8 @@ class OrderedFeaturesOption(ListOption):
     interface are returned, with those specified by the option ordered first."""
 
     def __init__(self, name, feature, default=None,
-                 doc='', metavar=None, include_missing=True):
-        ListOption.__init__(self, name, default, doc, metavar)
+                 help='', metavar=None, include_missing=True):
+        ListOption.__init__(self, name, default, help, metavar)
         self.feature = feature
         self.include_missing = include_missing
 

@@ -178,6 +178,9 @@ def default_context_setup(context):
     context['href'] = href
     context['static'] = static
     context['session'] = request.session
+    context['flash'] = flash_message
+    context['debug'] = application.debug
+    context['Markup'] = genshi.Markup
 
 
 def expose(rule=None, **kw):
@@ -203,10 +206,11 @@ def expose(rule=None, **kw):
 class Href(object):
     """A convenience object for referring to endpoints."""
     def __getattr__(self, endpoint):
+        endpoint = [endpoint]
         def wrapper(_external=False, **values):
-            if callable(endpoint):
-                endpoint = endpoint.__name__
-            return local.url_adapter.build(endpoint, values, force_external=_external)
+            if callable(endpoint[0]):
+                endpoint[0] = endpoint[0].__name__
+            return local.url_adapter.build(endpoint[0], values, force_external=_external)
         return wrapper
 
 href = Href()
@@ -242,10 +246,6 @@ def html(template, **data):
     context_setup.dispatch(context)
     context.update(data)
     stream = tmpl.generate(
-        session=request.session,
-        flash=flash_message,
-        debug=application.debug,
-        Markup=genshi.Markup,
         **context
         )
     return stream

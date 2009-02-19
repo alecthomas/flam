@@ -33,6 +33,8 @@ local_manager = LocalManager([local])
 application = local('application')
 flash_message = local('flash_message')
 request = local('request')
+session = local('session')
+user = local('session')
 # URL routing rules
 url_map = Map([Rule('/static/<file>', endpoint='static', build_only=True)])
 # URL routing endpoint to callback mapping.
@@ -55,14 +57,6 @@ class Request(Request):
     @property
     def username(self):
         return self.session.get('username')
-
-    @cached_property
-    def session(self):
-        sid = self.cookies.get(application.cookie_name)
-        if sid is None:
-            return session_store.new()
-        else:
-            return session_store.get(sid)
 
     @cached_property
     def form_token(self):
@@ -114,6 +108,8 @@ class Application(object):
         local.request = request
         local.url_adapter = adapter = url_map.bind_to_environ(environ)
         local.flash_message = {}
+        local.session = self._create_session()
+        local.user = None
 
         request_setup.dispatch()
 
@@ -153,6 +149,13 @@ class Application(object):
             response = e
         return ClosingIterator(response(environ, start_response),
                                [request_teardown.dispatch])
+
+    def _create_session(self):
+        sid = request.cookies.get(self.cookie_name)
+        if sid is None:
+            return session_store.new()
+        else:
+            return session_store.get(sid)
 
     def _remap_static(self, stream, prefix='/static/'):
         """Remap links to static content to the correct URL root."""

@@ -1,0 +1,21 @@
+<?xml version="1.0"?>
+<todo version="0.1.20">
+    <title>
+        flam /flæm/ noun, verb, flammed, flam⋅ming. Informal. –noun 1. a deception or trick. 2. a falsehood; lie. –verb (used with object), verb (used without object) 3. to deceive; delude; cheat.
+    </title>
+    <note priority="veryhigh" time="1235048289">
+        Authentication / user object loading / auth login handling.
+    </note>
+    <note priority="medium" time="1235048317">
+        Support multiple validate.add() calls per field name. (form.add('age', ...); form.add('age', ...))
+    </note>
+    <note priority="medium" time="1235048327">
+        Pluggable session stores (eg. DB backed)
+    </note>
+    <note priority="medium" time="1235048339">
+        WSGI deployment - fix run_server().
+    </note>
+    <note priority="medium" time="1235048350">
+        Integrate new config module.
+    </note>
+</todo>

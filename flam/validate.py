@@ -146,6 +146,15 @@ class Pattern(object):
         return value
 
 
+class In(object):
+    def __init__(self, element):
+        self.element = element
+
+    def __call__(self, value):
+        assert self.element in value
+        return value
+
+
 class Empty(object):
     def __call__(self, value):
         assert not value

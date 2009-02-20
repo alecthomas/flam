@@ -66,6 +66,11 @@ Inspired by:
 """
 
 
+__all__ = ['Error', 'UnknownFeature', 'ValidationError', 'Sequence',
+           'deferred', 'FeatureBroker', 'Require', 'features', 'provide',
+           'extend', 'append', 'require', 'remove']
+
+
 class Error(Exception):
     """Base feature exception."""
 

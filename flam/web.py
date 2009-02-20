@@ -53,6 +53,23 @@ WARNING = 'warning'
 ERROR = 'error'
 
 
+class Callback(Signal):
+    """Signal decorator."""
+    def __init__(self, help):
+        super(Callback, self).__init__()
+        self.__doc__ = help
+        self.dispatch = self.__call__
+        self.__call__ = self.connect
+
+
+context_setup = Callback('A decorator for registering a template render '
+                         'context setup callback.')
+request_setup = Callback('A decorator for registering a request setup '
+                         'callback.')
+request_teardown = Callback('A decorator for registering a request teardown '
+                            'callback.')
+
+
 class Request(Request):
     """Request object with some useful extra methods."""
 
@@ -267,24 +284,5 @@ def run_server(host='localhost', port=0xdead, static_path=None, debug=False,
         static_path = os.path.join(os.getcwd(), 'static')
     application = SharedDataMiddleware(application, {'/static': static_path})
     serving.run_simple(host, port, application, use_reloader=debug)
-
-
-class Callback(Signal):
-    def __init__(self, help):
-        super(Callback, self).__init__()
-        self.__doc__ = help
-        self.dispatch = self.__call__
-        self.__call__ = self.connect
-
-
-context_setup_signal = Signal()
-context_setup = context_setup_signal.connect
-context_setup.__doc__ = 'Register a function as a
-
-request_setup_signal = Signal()
-request_setup = request_setup_signal.connect
-
-request_teardown_signal = Signal()
-request_teardown = request_teardown_signal.connect
 
 

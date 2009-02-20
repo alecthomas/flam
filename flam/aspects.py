@@ -124,6 +124,8 @@ for uniformity.
 from inspect import isclass, isroutine
 
 
+__all__ = ['weave', 'AspectBase', 'DeferredAspect', 'Aspect']
+
 def weave(cls, aspect, *args, **kwargs):
     """Weave an aspect into a class."""
     def __new__(cls, *args, **kwargs):

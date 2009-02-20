@@ -163,7 +163,9 @@ class URI(object):
         >>> v = URI(u)
         >>> u == v
         True
-        >>> v.host = 'www.example.com'
+        >>> v.host = 'www.blue.com'
+        >>> v
+        URI(u'http://user:password@www.blue.com/some/path?other=3&parm=1&parm=2#fragment')
         >>> u == v
         False
         """
@@ -305,3 +307,8 @@ def random_sleep(a,b):
     """
     delay = random.randint(a,b)
     time.sleep(delay)
+
+
+if __name__ == '__main__':
+    import doctest
+    doctest.testmod()

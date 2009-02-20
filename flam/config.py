@@ -1,240 +1,215 @@
-# -*- coding: utf-8 -*-
-#
-# Copyright (C) 2003-2005 Edgewall Software
-# Copyright (C) 2003-2004 Jonas Borgström <jonas@edgewall.com>
-# Copyright (C) 2004-2005 Christopher Lenz <cmlenz@gmx.de>
-# All rights reserved.
-#
-# This software is licensed as described in the file COPYING, which
-# you should have received as part of this distribution. The terms
-# are also available at http://trac.edgewall.org/wiki/TracLicense.
-#
-# This software consists of voluntary contributions made by many
-# individuals. For the exact contribution history, see the revision
-# history and logs, available at http://trac.edgewall.org/log/.
-#
-# Author: Jonas Borgström <jonas@edgewall.com>
-#     Christopher Lenz <cmlenz@gmx.de>
-import os
+"""A file-backed declarative layer on optparse.
 
-from flam import features
-from flam.util import to_list, to_boolean, URI
+This module allows the user to register command line options, and to load them
+in bulk from a configuration file.
 
+>>> class Config(Configuration):
+...    debug = BoolOption('Enable debugging.', default=False)
+...    debug_level = IntOption('Debug level 0 <= n <= 9.', default=0)
+...    db = URIOption('Database URI.')
 
-__all__ = """
-Configuration
-Option
-BoolOption
-IntOption
-FloatOption
-ListOption
-URIOption
-FeatureOption
-OrderedFeaturesOption
-set_global_config
-""".split()
+>>> config = Config(args=['--debug=true', '--db=mysql://localhost/db'])
+>>> config
+{'debug': True, 'debug_level': 0, 'db': URI(u'mysql://localhost/db')}
+>>> config.debug
+True
+>>> config.db
+URI(u'mysql://localhost/db')
+
+"""
+
+from __future__ import with_statement
+import optparse
+import sys
+
+from flam.util import to_boolean, to_list, URI
 
 
-_config = None
-
-def set_global_config(config):
-    """Set default global config."""
-    global _config
-    _config = config
-
-
-class Configuration(dict):
-    """Abstraction layer for a basic key/value configuration file format."""
-
-    def __init__(self, filename=None):
-        super(Configuration, self).__init__()
-        self.filename = filename
-        if filename and os.path.exists(filename):
-            self.load(filename)
-
-    def load(self, filename):
-        for line in open(filename):
-            line = line.split('#', 1)[0].strip()
-            if not line:
-                continue
-
-            key, value = line.split('=', 1)
-            key = key.strip()
-            value = value.strip()
-            self[key] = value
-
-    # Public API
-    def options(self):
-        return sorted(self.items())
-
-    def update(self, data, transient=False):
-        """Bulk update configuration options from a dictionary."""
-        super(Configuration, self).update(data)
-        if not transient and self.filename:
-            # TODO Reflect this back to the configuration file
-            raise NotImplementedError
-
-    def get(self, name, default=None):
-        if name in self:
-            value = super(Configuration, self).get(name, default)
-        else:
-            option = Option.registry.get(name)
-            if option is not None:
-                value = option.default
-                if value is None:
-                    value = default
-            else:
-                value = default
-        return value
-
-    def set(self, name, value, transient=False):
-        """set a configuration option.
-
-        Args:
-            transient: Value is for the lifetime of this session only.
-        """
-        self[name] = value
-        if not transient and self.filename:
-            # TODO Reflect this back to the configuration file
-            raise NotImplementedError
-
-    def get_bool(self, name, default=None):
-        return to_boolean(self.get(name, default))
-
-    def get_int(self, name, default=None):
-        return int(self.get(name, default))
-
-    def get_float(self, name, default=None):
-        return float(self.get(name, default))
-
-    def get_list(self, name, default=None, sep=',', keep_empty=False):
-        return to_list(self.get(name, default), sep, keep_empty)
+__all__ = ['Configuration', 'Option', 'IntOption', 'FloatOption', 'ListOption',
+           'BoolOption']
 
 
 class Option(object):
-    """"A convenience property for accessing configuration entries.
-    
-    Options are also mapped to commandline flags via the ape.commandline module.
-    """
+    """A configuration option."""
 
-    registry = {}
+    def __init__(self, help, default=None, *args, **kwargs):
+        self.args = args
+        kwargs['help'] = help
+        kwargs['default'] = default
+        self.init_kwargs(kwargs)
+        self.kwargs = kwargs
 
-    def __init__(self, name, default=None, help='', metavar=None):
-        """Create a new Option.
+    def init_kwargs(self, kwargs):
+        """Hook for initialising keyword arguments to optparse.Option()."""
+        kwargs.setdefault('action', 'store')
 
-        Args:
-            name: Name of the option.
-            default: Default value.
-            help: Documentation string.
-            metavar: Name of variable to display in help.
-        """
-        self.name = name
-        if default is not None:
-            self.default = self.cast(default)
-        else:
-            self.default = default
-        self.__doc__ = help
-        self.metavar = metavar
-        self.registry[name] = self
-
-    def __get__(self, instance, owner):
-        if instance is None:
-            return self
-        config = getattr(instance, '_config', _config)
-        if config is not None:
-            return self.accessor(config, self.name, self.default)
-        else:
-            return self.default
-
-    def __set__(self, instance, value):
-        config = getattr(instance, '_config', config)
-        config.set(self.name, unicode(value))
-
-    def accessor(self, config, name, default):
-        return self.cast(config.get(name, default))
-
-    def cast(self, value):
-        return str(value)
+    def to_optparse_option(self, name):
+        flag = '--' + name
+        option = optparse.Option(flag, *self.args, **self.kwargs)
+        return option
 
 
-class BoolOption(Option):
-    def cast(self, value):
-        return to_boolean(value)
+class ConvertingOption(Option):
+    """A virtual base Option that performs type conversion."""
+
+    def convert(self, value):
+        """Override this to convert an option."""
+        raise NotImplementedError
+
+    def init_kwargs(self, kwargs):
+        def convert(option, opt_str, value, parser):
+            setattr(parser.values, opt_str[2:], self.convert(value))
+
+        kwargs.update(dict(
+            type='string',
+            action='callback',
+            callback=convert,
+            ))
 
 
 class IntOption(Option):
-    def cast(self, value):
-        return int(value)
+    """An integer option.
+
+    >>> class Config(Configuration):
+    ...   age = IntOption('Age.')
+    >>> config = Config(args=['--age=34'])
+    >>> config.age
+    34
+    """
+
+    def init_kwargs(self, kwargs):
+        kwargs['type'] = 'int'
 
 
 class FloatOption(Option):
-    def cast(self, value):
-        return float(value)
+    """A floating point option."""
+    def init_kwargs(self, kwargs):
+        kwargs['type'] = 'float'
 
 
-class ListOption(Option):
-    def __init__(self, name, default=None, help='', metavar=None, sep=',',
-                 keep_empty=False):
-        self.sep = sep
-        self.keep_empty = keep_empty
-        Option.__init__(self, name, default, help, metavar)
+class BoolOption(ConvertingOption):
+    """A boolean option.
 
-    def cast(self, value):
-        return to_list(value, self.sep, self.keep_empty)
+    >>> class Config(Configuration):
+    ...   alive = BoolOption('Alive?')
+    >>> config = Config(args=['--alive=true'])
+    >>> config.alive
+    True
+    """
+
+    def convert(self, value):
+        return to_boolean(value)
 
 
-class URIOption(Option):
-    def cast(self, value):
+class URIOption(ConvertingOption):
+    """A URI option.
+
+    The value will be a flam.util.URI object.
+
+    >>> class Config(Configuration):
+    ...   db = URIOption('Database connection.')
+    >>> config = Config(args=['--db=mysql://localhost:5001/db'])
+    >>> config.db
+    URI(u'mysql://localhost:5001/db')
+    """
+    def convert(self, value):
         return URI(value)
 
 
-class FeatureOption(Option):
-    def __init__(self, name, feature, default=None, help='', metavar=None):
-        Option.__init__(self, name, default, help, metavar)
-        self.feature = feature
+class ListOption(ConvertingOption):
+    """An option with a list of values.
 
-    def __get__(self, instance, owner):
-        if instance is None:
-            return self
-        value = Option.__get__(self, instance, owner)
+    >>> class Config(Configuration):
+    ...   names = ListOption('Names.')
+    >>> config = Config(args=['--names=bob,alice'])
+    >>> config.names
+    ['bob', 'alice']
+    """
 
-        for impl in features.require(self.feature):
-            if impl.__class__.__name__ == value:
-                return impl
-        raise AttributeError('Cannot find an implementation of the "%s" '
-                             'interface named "%s". Please update the option '
-                             '%s.' % (self.feature.__class__.__name__, value,
-                                      self.name))
+    def __init__(self, *args, **kwargs):
+        self.sep = kwargs.pop('sep', ',')
+        self.keep_empty = kwargs.pop('keep_empty', False)
+        super(ListOption, self).__init__(*args, **kwargs)
+
+    def convert(self, value):
+        return to_list(value, sep=self.sep, keep_empty=self.keep_empty)
 
 
-class OrderedFeaturesOption(ListOption):
-    """A comma separated, ordered, list of components implementing `interface`.
-    Can be empty.
+class Configuration(object):
+    """Configuration container object.
 
-    If `include_missing` is true (the default) all components implementing the
-    interface are returned, with those specified by the option ordered first."""
+    Configuration options are declared as class attributes. Options can be
+    defined in a configuration file or via command line flags.
+    """
 
-    def __init__(self, name, feature, default=None,
-                 help='', metavar=None, include_missing=True):
-        ListOption.__init__(self, name, default, help, metavar)
-        self.feature = feature
-        self.include_missing = include_missing
+    def __init__(self, file=None, args=None, **kwargs):
+        """Create a new Configuration object.
 
-    def __get__(self, instance, owner):
-        if instance is None:
-            return self
-        order = ListOption.__get__(self, instance, owner)
-        components = []
-        for impl in features.require(self.feature):
-            if self.include_missing or impl.__class__.__name__ in order:
-                components.append(impl)
+        :param file: File-like object or filename to load configuration from.
+        :param args: Command-line arguments, excluding argv[0]. sys.argv will
+                     be used if omitted.
+        :param kwargs: Extra keyword arguments to pass to the OptionParser
+                       constructor.
+        """
+        options = self._collect_options()
+        self._parser = optparse.OptionParser(option_list=options, **kwargs)
+        self._parser.add_option(
+            '--config', help='Configuration file to load.',
+            default=filename, action='store',
+            )
+        defaults = dict((option.dest, option.default) for option in options)
+        self._values = optparse.Values(defaults)
+        if filename is not None:
+            self.read(filename)
+        # TODO(alec) We should preserve args somewhere...
+        _, args = self._parser.parse_args(args or sys.argv[1:], values=self._values)
 
-        def compare(x, y):
-            x, y = x.__class__.__name__, y.__class__.__name__
-            if x not in order:
-                return int(y in order)
-            if y not in order:
-                return -int(x in order)
-            return cmp(order.index(x), order.index(y))
-        components.sort(compare)
-        return components
+    def read(self, file):
+        """Read option configuration from a file-like object or a filename.
+
+        >>> class Config(Configuration):
+        ...   age = IntOption('Age.')
+        >>> from StringIO import StringIO
+        >>> conf_file = StringIO('age=10')
+        >>> config = Config(conf_file)
+        >>> config.age
+        10
+        """
+        file_args = self._read_args(file)
+        self._parser.parse_args(file_args, values=self._values)
+
+    def __repr__(self):
+        return repr(self._values.__dict__)
+
+    def _collect_options(self):
+        options = []
+        for name, value in self.__class__.__dict__.items():
+            if isinstance(value, Option):
+                value = value.to_optparse_option(name)
+            elif isinstance(value, optparse.Option):
+                pass
+            else:
+                continue
+            options.append(value)
+        return options
+
+    def _read_args(self, file):
+        args = []
+        if isinstance(file, basestring):
+            file = open(file)
+        try:
+            for line in file:
+                line = line.strip()
+                if not line or line.startswith('#'):
+                    continue
+                key, value = line.split('=', 1)
+                args.append('--' + key.strip())
+                args.append(value.strip())
+            return args
+        finally:
+            file.close()
+
+
+if __name__ == '__main__':
+    import doctest
+    doctest.testmod()

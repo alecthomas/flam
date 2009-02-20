@@ -1,14 +1,30 @@
+# encoding: utf-8
+"""flam /flæm/ noun, verb, flammed, flam⋅ming. Informal. –noun 1. a deception
+or trick. 2. a falsehood; lie. –verb (used with object), verb (used without
+object) 3. to deceive; delude; cheat.
+
+Flam - A minimalist Python application framework.
+"""
+
 from types import ModuleType
 import sys
 
 
 all_by_module = {
+    'flam.adaption': ['Error', 'InvalidAdaption', 'Adaption', 'Adapter', 'adapt',
+                      'adapts', 'remove'],
+    'flam.aspects': ['weave', 'AspectBase', 'DeferredAspect', 'Aspect'],
+    'flam.config': ['Configuration', 'Option', 'IntOption', 'FloatOption',
+                    'ListOption', 'BoolOption'],
+    'flam.features': ['Error', 'UnknownFeature', 'ValidationError', 'Sequence',
+                      'deferred', 'FeatureBroker', 'Require', 'features',
+                      'provide', 'extend', 'append', 'require', 'remove'],
+    'flam.util': ['URI', 'cached_property', 'to_iso_time', 'from_iso_time',
+                  'to_boolean', 'to_list', 'get_last_traceback', 'random_sleep'],
     'flam.web': ['expose', 'run_server', 'static_resource', 'json', 'Request',
                  'Response', 'application', 'local', 'html', 'request', 'href',
                  'redirect', 'static', 'flash', 'INFO', 'WARNING',
                  'ERROR','context_setup', 'request_setup', 'request_teardown'],
-    'flam.util': ['URI', 'cached_property', 'to_iso_time', 'from_iso_time',
-                  'to_boolean', 'to_list', 'get_last_traceback', 'random_sleep'],
 }
 
 attribute_modules = dict.fromkeys([])
@@ -21,7 +37,7 @@ for module, items in all_by_module.iteritems():
 
 
 class module(ModuleType):
-    """Automatically import objects from the modules."""
+    __doc__
 
     def __getattr__(self, name):
         if name in object_origins:

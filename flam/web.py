@@ -19,6 +19,8 @@ from werkzeug.contrib.sessions import Session, FilesystemSessionStore, generate_
 import genshi
 import simplejson
 
+from flam.util import Signal
+
 
 __all__ = [
     'expose', 'run_server', 'static_resource', 'json', 'Request', 'Response',
@@ -70,28 +72,6 @@ class Request(Request):
         return simplejson.loads(self.data)
 
 
-class CallbackDecorator(object):
-    """Register a callback via a decorator."""
-
-    def __init__(self):
-        self.callbacks = []
-
-    def __call__(self, callback):
-        """Register callback."""
-        self.callbacks.append(callback)
-
-    def dispatch(self, *args, **kwargs):
-        if not self.callbacks:
-            return None
-        for callback in self.callbacks:
-            callback(*args, **kwargs)
-
-
-context_setup = CallbackDecorator()
-request_setup = CallbackDecorator()
-request_teardown = CallbackDecorator()
-
-
 class Application(object):
     """Core WSGI application."""
 
@@ -111,7 +91,7 @@ class Application(object):
         local.session = self._create_session()
         local.user = None
 
-        request_setup.dispatch()
+        request_setup_signal()
 
         try:
             # CSRF protection concept borrowed from Trac.
@@ -148,7 +128,7 @@ class Application(object):
         except HTTPException, e:
             response = e
         return ClosingIterator(response(environ, start_response),
-                               [request_teardown.dispatch])
+                               [request_teardown_signal()])
 
     def _create_session(self):
         sid = request.cookies.get(self.cookie_name)
@@ -246,7 +226,7 @@ def html(template, **data):
     """Render a HTML template."""
     tmpl = template_loader.load(template)
     context = {}
-    context_setup.dispatch(context)
+    context_setup_signal(context)
     context.update(data)
     stream = tmpl.generate(
         **context
@@ -287,3 +267,24 @@ def run_server(host='localhost', port=0xdead, static_path=None, debug=False,
         static_path = os.path.join(os.getcwd(), 'static')
     application = SharedDataMiddleware(application, {'/static': static_path})
     serving.run_simple(host, port, application, use_reloader=debug)
+
+
+class Callback(Signal):
+    def __init__(self, help):
+        super(Callback, self).__init__()
+        self.__doc__ = help
+        self.dispatch = self.__call__
+        self.__call__ = self.connect
+
+
+context_setup_signal = Signal()
+context_setup = context_setup_signal.connect
+context_setup.__doc__ = 'Register a function as a
+
+request_setup_signal = Signal()
+request_setup = request_setup_signal.connect
+
+request_teardown_signal = Signal()
+request_teardown = request_teardown_signal.connect
+
+

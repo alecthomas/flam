@@ -18,7 +18,7 @@ Convenience functions exist for many common operations:
         send user messages, including after redirects.
 
 Decorators are used extensively to register hooks in Flam's web framework. The
-most useful of these is probably @expose, but they all have their use.
+most useful of these is probably @expose, but they all have their place.
 
 Register login() as the request handler for /login:
 

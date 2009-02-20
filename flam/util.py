@@ -18,6 +18,10 @@ import random
 import time
 
 
+__all__ = ['URI', 'Signal', 'cached_property', 'to_iso_time', 'from_iso_time',
+           'to_boolean', 'to_list', 'get_last_traceback', 'random_sleep']
+
+
 # XXX Appropriated from http://swapoff.org/pyndexter
 class URI(object):
     """Parse a URI into its component parts. The `query` component is passed
@@ -195,6 +199,31 @@ class URI(object):
         if self.fragment:
             uri += u'#' + urllib.quote(self.fragment)
         return uri
+
+
+class Signal(object):
+    """An object for implementing the observer pattern.
+
+    Listeners connect functions to signals. All listeners are called when the
+    producer calls the signal.
+    """
+    def __init__(self):
+        self._callbacks = []
+
+    def connect(self, callback):
+        """Connect a function to the signal."""
+        self._callbacks.append(callback)
+        return callback
+
+    def disconnect(self, callback):
+        """Disconnect a function from the signal."""
+        self._callbacks.remove(callback)
+
+    def __call__(self, *args, **kwargs):
+        response = None
+        for callback in self._callbacks:
+            response = callback(*args, **kwargs)
+        return response
 
 
 class cached_property(object):

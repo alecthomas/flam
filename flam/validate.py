@@ -70,6 +70,12 @@ from genshi.builder import tag
 from genshi.filters.transform import Transformer
 
 
+__all__ = [
+    'ValidationError', 'Aspect', 'Chain', 'Range', 'Min', 'Max', 'Length',
+    'MinLength', 'MaxLength', 'Pattern', 'In', 'Empty', 'AnyOf', 'Not',
+    'FormInjector', 'Field', 'Context', 'Form',
+    ]
+
 
 class ValidationError(Exception):
     pass

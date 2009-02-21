@@ -11,21 +11,19 @@ import sys
 
 
 all_by_module = {
-    'flam.adaption': ['Error', 'InvalidAdaption', 'Adaption', 'Adapter', 'adapt',
-                      'adapts', 'remove'],
+    # XXX Do not delete this section. It is automatically rebuilt by "setup
+    # build".
+
+    # BEGIN IMPORTS
+    'flam.web': ['expose', 'run_server', 'static_resource', 'json', 'Request', 'Response', 'application', 'local', 'html', 'request', 'href', 'redirect', 'static', 'flash', 'INFO', 'WARNING', 'ERROR', 'context_setup', 'request_setup', 'request_teardown'],
+    'flam.config': ['Configuration', 'Option', 'IntOption', 'FloatOption', 'ListOption', 'BoolOption'],
+    'flam.validate': ['ValidationError', 'Aspect', 'Chain', 'Range', 'Min', 'Max', 'Length', 'MinLength', 'MaxLength', 'Pattern', 'In', 'Empty', 'AnyOf', 'Not', 'FormInjector', 'Field', 'Context', 'Form'],
+    'flam.adaption': ['Error', 'InvalidAdaption', 'Adaption', 'Adapter', 'adapt', 'adapts', 'remove'],
+    'flam.util': ['URI', 'Signal', 'cached_property', 'to_iso_time', 'from_iso_time', 'to_boolean', 'to_list', 'get_last_traceback', 'random_sleep'],
     'flam.aspects': ['weave', 'AspectBase', 'DeferredAspect', 'Aspect'],
-    'flam.config': ['Configuration', 'Option', 'IntOption', 'FloatOption',
-                    'ListOption', 'BoolOption'],
-    'flam.features': ['Error', 'UnknownFeature', 'ValidationError', 'Sequence',
-                      'deferred', 'FeatureBroker', 'Require', 'features',
-                      'provide', 'extend', 'append', 'require', 'remove'],
-    'flam.util': ['URI', 'cached_property', 'to_iso_time', 'from_iso_time',
-                  'to_boolean', 'to_list', 'get_last_traceback', 'random_sleep'],
-    'flam.web': ['expose', 'run_server', 'static_resource', 'json', 'Request',
-                 'Response', 'application', 'local', 'html', 'request', 'href',
-                 'redirect', 'static', 'flash', 'INFO', 'WARNING',
-                 'ERROR','context_setup', 'request_setup', 'request_teardown'],
-}
+    'flam.features': ['Error', 'UnknownFeature', 'ValidationError', 'Sequence', 'deferred', 'FeatureBroker', 'Require', 'features', 'provide', 'extend', 'append', 'require', 'remove'],
+    # END IMPORTS
+    }
 
 attribute_modules = dict.fromkeys([])
 

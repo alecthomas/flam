@@ -27,9 +27,9 @@ from flam import validate
 
 
 __all__ = [
-    'expose', 'run_server', 'static_resource', 'json', 'Request', 'Response',
-    'application', 'local', 'html', 'request', 'href', 'redirect', 'static',
-    'flash', 'INFO', 'WARNING', 'ERROR','context_setup',
+    'expose', 'wsgi_application', 'run_server', 'static_resource', 'json',
+    'Request', 'Response', 'application', 'local', 'html', 'request', 'href',
+    'redirect', 'static', 'flash', 'INFO', 'WARNING', 'ERROR','context_setup',
     'request_setup', 'request_teardown', 'HTML', 'tag', 'session',
     'process_form',
     ]

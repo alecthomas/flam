@@ -152,10 +152,6 @@ class Configuration(object):
                        constructor.
         """
         options = self._collect_options()
-        if isinstance(file, basestring):
-            filename = file
-        else:
-            filename = None
         self._parser = optparse.OptionParser(option_list=options, **kwargs)
         self._parser.add_option(
             '--config', help='Configuration file to load.',
@@ -163,11 +159,10 @@ class Configuration(object):
             )
         defaults = dict((option.dest, option.default) for option in options)
         self._values = optparse.Values(defaults)
-        if file is not None:
-            self.read(file)
+        if filename is not None:
+            self.read(filename)
         # TODO(alec) We should preserve args somewhere...
         _, args = self._parser.parse_args(args or sys.argv[1:], values=self._values)
-        self.__dict__.update(self._values.__dict__)
 
     def read(self, file):
         """Read option configuration from a file-like object or a filename.
@@ -191,7 +186,9 @@ class Configuration(object):
         for name, value in self.__class__.__dict__.items():
             if isinstance(value, Option):
                 value = value.to_optparse_option(name)
-            elif not isinstance(value, optparse.Option):
+            elif isinstance(value, optparse.Option):
+                pass
+            else:
                 continue
             options.append(value)
         return options

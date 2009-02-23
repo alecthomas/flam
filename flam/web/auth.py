@@ -43,22 +43,24 @@ eg.
 
 from genshi.filters import HTMLFormFiller
 
-from flam.web import *
-from flam.web.core import Callback, view_map
 from flam import validate
+from flam.util import DecoratorSignal
+from flam.web import *
+from flam.web.core import view_map
 
 
 __all__ = [
     'authenticator', 'user_loader', 'authentication_handler',
-    'require_authentication',
+    'require_authentication', 'user', 'get_session_user', 'set_session_user',
+    'clear_session_user',
     ]
 
 
-user_loader = Callback('Register a function for loading a "user" object from a '
-                       'username.', limit=1)
-authenticator = Callback('Register an authentication function.', limit=1)
-_user_authentication_endpoint = None
+user = local('user')
 
+user_loader = DecoratorSignal(limit=1)
+authenticator = DecoratorSignal(limit=1)
+_user_authentication_endpoint = None
 
 
 @request_setup
@@ -92,8 +94,8 @@ def authentication_handler(*args, **kwargs):
     authentication handler."""
     global _user_authentication_endpoint
     callback = expose(*args, **kwargs)
-    for endpoint, callback in view_map.iteritems():
-        if callback == callback:
+    for endpoint, endpoint_callback in view_map.iteritems():
+        if callback == endpoint_callback:
             _user_authentication_endpoint = endpoint
             break
     return callback
@@ -133,3 +135,20 @@ def login():
     session['username'] = form['username']
     # TODO(alec) How do we pass the redirect target, default or explicit?
     return redirect(href.index())
+
+
+def get_session_user():
+    """Get the username for the session."""
+    return session.get('username', None)
+
+
+def set_session_user(username):
+    """Set the session user."""
+    session['username'] = username
+    local.user = user_loader.dispatch(session['username'])
+
+
+def clear_session_user():
+    """Clear the session user."""
+    session.pop('username', None)
+    local.user = None

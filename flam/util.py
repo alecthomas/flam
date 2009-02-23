@@ -18,8 +18,11 @@ import random
 import time
 
 
-__all__ = ['URI', 'Signal', 'cached_property', 'to_iso_time', 'from_iso_time',
-           'to_boolean', 'to_list', 'get_last_traceback', 'random_sleep']
+__all__ = [
+    'URI', 'Signal', 'DecoratorSignal', 'cached_property', 'to_iso_time',
+    'from_iso_time', 'to_boolean', 'to_list', 'get_last_traceback',
+    'random_sleep',
+    ]
 
 
 # XXX Appropriated from http://swapoff.org/pyndexter
@@ -229,6 +232,30 @@ class Signal(object):
         for callback in self._callbacks:
             response = callback(*args, **kwargs)
         return response
+
+
+class DecoratorSignal(Signal):
+    """Define signal callbacks with a decorator.
+
+    >>> mark = DecoratorSignal()
+    >>> @mark
+    ... def func1():
+    ...   print 'func1()'
+    >>> @mark
+    ... def func2():
+    ...   print 'func2()'
+    >>> mark.dispatch()
+    func1()
+    func2()
+    """
+
+    def dispatch(self, *args, **kwargs):
+        """Dispatch to the callbacks."""
+        return super(DecoratorSignal, self).__call__(*args, **kwargs)
+
+    def __call__(self, function):
+        """Connect this DecoratorSignal to the given function."""
+        return self.connect(function)
 
 
 class cached_property(object):

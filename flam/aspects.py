@@ -72,7 +72,7 @@ Aspects can also be applied to classes:
 >>> RealOrbitalLaser = OrbitalLaser
 >>> OrbitalLaser = RedirectLaser(OrbitalLaser)
 >>> OrbitalLaser
-<class '__main__.OrbitalLaser'>
+<class 'flam.aspects.OrbitalLaser'>
 >>> OrbitalLaser.power
 11
 >>> laser = OrbitalLaser(power=10)

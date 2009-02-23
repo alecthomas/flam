@@ -15,16 +15,18 @@ all_by_module = {
     # build".
 
     # BEGIN IMPORTS
-    'flam.web': ['expose', 'run_server', 'static_resource', 'json', 'Request', 'Response', 'application', 'local', 'html', 'request', 'href', 'redirect', 'static', 'flash', 'INFO', 'WARNING', 'ERROR', 'context_setup', 'request_setup', 'request_teardown'],
     'flam.config': ['Configuration', 'Option', 'IntOption', 'FloatOption', 'ListOption', 'BoolOption'],
+    'flam.web.auth': ['authenticator', 'user_loader', 'authentication_handler', 'require_authentication', 'user', 'get_session_user', 'set_session_user', 'clear_session_user'],
+    'flam.web.core': ['expose', 'run_server', 'static_resource', 'json', 'Request', 'Response', 'application', 'local', 'html', 'request', 'href', 'redirect', 'static', 'flash', 'INFO', 'WARNING', 'ERROR', 'context_setup', 'request_setup', 'request_teardown', 'HTML', 'tag', 'session', 'process_form'],
     'flam.validate': ['ValidationError', 'Aspect', 'Chain', 'Range', 'Min', 'Max', 'Length', 'MinLength', 'MaxLength', 'Pattern', 'In', 'Empty', 'AnyOf', 'Not', 'FormInjector', 'Field', 'Context', 'Form'],
     'flam.adaption': ['Error', 'InvalidAdaption', 'Adaption', 'Adapter', 'adapt', 'adapts', 'remove'],
-    'flam.util': ['URI', 'Signal', 'cached_property', 'to_iso_time', 'from_iso_time', 'to_boolean', 'to_list', 'get_last_traceback', 'random_sleep'],
+    'flam.util': ['URI', 'Signal', 'DecoratorSignal', 'cached_property', 'to_iso_time', 'from_iso_time', 'to_boolean', 'to_list', 'get_last_traceback', 'random_sleep'],
     'flam.aspects': ['weave', 'AspectBase', 'DeferredAspect', 'Aspect'],
-    'flam.features': ['Error', 'UnknownFeature', 'ValidationError', 'Sequence', 'deferred', 'FeatureBroker', 'Require', 'features', 'provide', 'extend', 'append', 'require', 'remove'],
+    'flam.features': ['Error', 'UnknownFeature', 'Sequence', 'deferred', 'FeatureBroker', 'Require', 'features', 'provide', 'extend', 'append', 'require', 'remove'],
     # END IMPORTS
     }
 
+# List of modules to export directly.
 attribute_modules = dict.fromkeys([])
 
 

@@ -21,15 +21,16 @@ from werkzeug.contrib.sessions import Session, FilesystemSessionStore, generate_
 import genshi
 import simplejson
 
-from flam.util import Signal
+from flam.util import DecoratorSignal
 from flam import validate
 
 
 __all__ = [
     'expose', 'run_server', 'static_resource', 'json', 'Request', 'Response',
     'application', 'local', 'html', 'request', 'href', 'redirect', 'static',
-    'flash', 'INFO', 'WARNING', 'ERROR','context_setup', 'request_setup',
-    'request_teardown', 'HTML', 'tag', 'user', 'session', 'process_form',
+    'flash', 'INFO', 'WARNING', 'ERROR','context_setup',
+    'request_setup', 'request_teardown', 'HTML', 'tag', 'session',
+    'process_form',
     ]
 
 
@@ -39,7 +40,6 @@ application = local('application')
 flash_message = local('flash_message')
 request = local('request')
 session = local('session')
-user = local('user')
 # URL routing rules
 url_map = Map([Rule('/static/<file>', endpoint='static', build_only=True)])
 # URL routing endpoint to callback mapping.
@@ -56,22 +56,9 @@ WARNING = 'warning'
 ERROR = 'error'
 
 
-class Callback(Signal):
-    """Signal decorator."""
-    def __init__(self, help, limit=None):
-        super(Callback, self).__init__(limit=limit)
-        self.__doc__ = help
-
-    def dispatch(self, *args, **kwargs):
-        return super(Callback, self).__call__(*args, **kwargs)
-
-    def __call__(self, *args, **kwargs):
-        return super(Callback, self).connect(*args, **kwargs)
-
-
-context_setup = Callback('Register a template render context setup callback.')
-request_setup = Callback('Register a request setup function.')
-request_teardown = Callback('Register a request teardown function.')
+context_setup = DecoratorSignal()
+request_setup = DecoratorSignal()
+request_teardown = DecoratorSignal()
 
 
 class Request(Request):
@@ -121,9 +108,9 @@ class Application(object):
 
             endpoint, values = adapter.match()
             handler = view_map[endpoint]
-            if 'flash' in session:
-                flash_message.update(session['flash'])
-                del session['flash']
+            if 'flash_message' in session:
+                flash_message.update(session['flash_message'])
+                del session['flash_message']
             response = handler(**values)
             if isinstance(response, genshi.Stream):
                 token = tag.input(type='hidden', name='__FORM_TOKEN',
@@ -134,7 +121,7 @@ class Application(object):
                 response = Response(response.render('xhtml'), content_type='text/html')
                 response.set_cookie('form_token', session_form_token, httponly=True)
             elif flash_message:
-                session['flash'] = dict(flash_message)
+                session['flash_message'] = dict(flash_message)
 
             if session.should_save:
                 session_store.save(session)
@@ -166,9 +153,9 @@ class Application(object):
             Transformer('//*[matches(@href, "^%s")]' % prefix).attr('href', map_static)
 
 
-def flash(message, type=INFO):
+def flash(text, type=INFO):
     """Flash a message to the user on next request."""
-    flash_message['message'] = message
+    flash_message['text'] = message
     flash_message['type'] = type
 
 
@@ -178,7 +165,7 @@ def default_context_setup(context):
     context['href'] = href
     context['static'] = static
     context['session'] = session
-    context['flash'] = flash_message
+    context['flash_message'] = flash_message
     context['debug'] = application.debug
     context['Markup'] = genshi.Markup
 
@@ -320,3 +307,17 @@ def process_form(template, validator, **context):
         return False, template | HTMLFormFiller(data=form) | validation_context.inject_errors()
 
     return True, template
+
+
+def get_session_user():
+    return session.get('username', None)
+
+
+def set_session_user(username):
+    """Set the session user."""
+    session['username'] = username
+
+
+def clear_session_user():
+    """Clear the session user."""
+    session.pop('username', None)

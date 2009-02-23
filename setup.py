@@ -5,7 +5,10 @@ import textwrap
 
 from distutils.command.build_py import build_py as _build_py
 from distutils import log
-from distutils.core import setup
+try:
+    from setuptools import setup
+except ImportError:
+    from distutils.core import setup
 
 
 class build_py(_build_py):
@@ -59,8 +62,9 @@ setup(
     description='A minimalist Python application framework.',
     license='BSD',
     platforms=['any'],
-    packages=['flam'],
+    packages=['flam', 'flam.web'],
     author='Alec Thomas',
     author_email='alec@swapoff.org',
     cmdclass={'build_py': build_py},
+    test_suite = 'nose.collector',
     )

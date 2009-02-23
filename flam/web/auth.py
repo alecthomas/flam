@@ -125,11 +125,13 @@ def login():
 
     context = login_form.validate(form)
     if context.errors:
+        clear_session_user()
         return html('login.html') | HTMLFormFiller(data=form) | context.inject_errors()
 
     # Authenticate the user.
     user = user_loader.dispatch(form['username'])
     if not authenticator.dispatch(user, form['password']):
+        clear_session_user()
         flash('Invalid credentials.', type=ERROR)
         return html('login.html') | HTMLFormFiller(data=form)
     session['username'] = form['username']

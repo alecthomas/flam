@@ -44,7 +44,7 @@ class module(ModuleType):
                 setattr(self, extra_name, getattr(module, extra_name))
             return getattr(module, name)
         elif name in attribute_modules:
-            __import__('werkzeug.' + name)
+            __import__('flam.' + name)
         return ModuleType.__getattribute__(self, name)
 
 

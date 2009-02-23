@@ -19,11 +19,17 @@ class build_py(_build_py):
 
     def find_modules(self):
         module_map = {}
+        symbols = set()
         for dir, dirs, files in os.walk('flam'):
             modules = [os.path.join(dir, file).replace('.py', '').replace('/', '.')
                        for file in files if not file.startswith('_') and file.endswith('.py')]
             for name in modules:
                 module = __import__(name, {}, {}, ['.'])
+                duplicates = symbols.intersection(module.__all__)
+                if duplicates:
+                    log.warn('warning: Duplicate symbols "%s" found in %s.'
+                             % (', '.join(duplicates), name))
+                symbols.update(module.__all__)
                 module_map[name] = module.__all__
         return module_map
 

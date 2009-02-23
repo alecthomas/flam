@@ -209,12 +209,15 @@ class Signal(object):
     Listeners connect functions to signals. All listeners are called when the
     producer calls the signal.
     """
-    def __init__(self):
+    def __init__(self, limit=None):
         self._callbacks = []
+        self._limit = limit
 
     def connect(self, callback):
         """Connect a function to the signal."""
         self._callbacks.append(callback)
+        if self._limit is not None and len(self._callbacks) > self._limit:
+            del self._callbacks[:len(self._callbacks) - self._limit]
         return callback
 
     def disconnect(self, callback):

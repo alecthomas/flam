@@ -66,7 +66,7 @@ Inspired by:
 """
 
 
-__all__ = ['Error', 'UnknownFeature', 'ValidationError', 'Sequence',
+__all__ = ['Error', 'UnknownFeature', 'Sequence',
            'deferred', 'FeatureBroker', 'Require', 'features', 'provide',
            'extend', 'append', 'require', 'remove']
 
@@ -80,10 +80,6 @@ class UnknownFeature(Error):
 
     def __str__(self):
         return 'Unknown feature %r' % (self.args[0],)
-
-
-class ValidationError(Error):
-    """A feature did not match the validation criteria."""
 
 
 class Sequence(list):

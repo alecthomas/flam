@@ -5,10 +5,12 @@ import logging
 import mimetypes
 import os
 import posixpath
+import sys
 
+from genshi import HTML
 from genshi.builder import tag
 from genshi.template import TemplateLoader
-from genshi.filters import Transformer
+from genshi.filters import Transformer, HTMLFormFiller
 from werkzeug import Local, LocalManager, SharedDataMiddleware, Request, \
                      Response, ClosingIterator, DebuggedApplication, \
                      serving, redirect
@@ -20,13 +22,14 @@ import genshi
 import simplejson
 
 from flam.util import Signal
+from flam import validate
 
 
 __all__ = [
     'expose', 'run_server', 'static_resource', 'json', 'Request', 'Response',
     'application', 'local', 'html', 'request', 'href', 'redirect', 'static',
     'flash', 'INFO', 'WARNING', 'ERROR','context_setup', 'request_setup',
-    'request_teardown',
+    'request_teardown', 'HTML', 'tag', 'user', 'session', 'process_form',
     ]
 
 
@@ -55,27 +58,24 @@ ERROR = 'error'
 
 class Callback(Signal):
     """Signal decorator."""
-    def __init__(self, help):
-        super(Callback, self).__init__()
+    def __init__(self, help, limit=None):
+        super(Callback, self).__init__(limit=limit)
         self.__doc__ = help
-        self.dispatch = self.__call__
-        self.__call__ = self.connect
+
+    def dispatch(self, *args, **kwargs):
+        return super(Callback, self).__call__(*args, **kwargs)
+
+    def __call__(self, *args, **kwargs):
+        return super(Callback, self).connect(*args, **kwargs)
 
 
-context_setup = Callback('A decorator for registering a template render '
-                         'context setup callback.')
-request_setup = Callback('A decorator for registering a request setup '
-                         'callback.')
-request_teardown = Callback('A decorator for registering a request teardown '
-                            'callback.')
+context_setup = Callback('Register a template render context setup callback.')
+request_setup = Callback('Register a request setup function.')
+request_teardown = Callback('Register a request teardown function.')
 
 
 class Request(Request):
     """Request object with some useful extra methods."""
-
-    @property
-    def username(self):
-        return self.session.get('username')
 
     @cached_property
     def form_token(self):
@@ -94,7 +94,7 @@ class Application(object):
 
     def __init__(self, cookie_name=None, debug=False, static_root=None, static_map=None):
         local.application = self
-        self.cookie_name = cookie_name
+        self.cookie_name = cookie_name or os.path.basename(sys.argv[0])
         self.debug = debug
         self.static_root = static_root
         self.static_map = static_map
@@ -108,7 +108,7 @@ class Application(object):
         local.session = self._create_session()
         local.user = None
 
-        request_setup_signal()
+        request_setup.dispatch()
 
         try:
             # CSRF protection concept borrowed from Trac.
@@ -121,9 +121,9 @@ class Application(object):
 
             endpoint, values = adapter.match()
             handler = view_map[endpoint]
-            if 'flash' in request.session:
-                flash_message.update(request.session['flash'])
-                del request.session['flash']
+            if 'flash' in session:
+                flash_message.update(session['flash'])
+                del session['flash']
             response = handler(**values)
             if isinstance(response, genshi.Stream):
                 token = tag.input(type='hidden', name='__FORM_TOKEN',
@@ -134,18 +134,18 @@ class Application(object):
                 response = Response(response.render('xhtml'), content_type='text/html')
                 response.set_cookie('form_token', session_form_token, httponly=True)
             elif flash_message:
-                request.session['flash'] = dict(flash_message)
+                session['flash'] = dict(flash_message)
 
-            if request.session.should_save:
-                session_store.save(request.session)
+            if session.should_save:
+                session_store.save(session)
                 response.set_cookie(
-                    self.cookie_name, request.session.sid,
+                    self.cookie_name, session.sid,
                     httponly=True,
                     )
         except HTTPException, e:
             response = e
         return ClosingIterator(response(environ, start_response),
-                               [request_teardown_signal()])
+                               [request_teardown.dispatch])
 
     def _create_session(self):
         sid = request.cookies.get(self.cookie_name)
@@ -177,29 +177,34 @@ def default_context_setup(context):
     """Populate the default template render context."""
     context['href'] = href
     context['static'] = static
-    context['session'] = request.session
+    context['session'] = session
     context['flash'] = flash_message
     context['debug'] = application.debug
     context['Markup'] = genshi.Markup
 
 
-def expose(rule=None, **kw):
+def expose(path=None, **kw):
     """Expose a function as a routing endpoint.
 
     If arguments are omitted, the wrapped function name will be used as the
     rule name and routing path.
     """
-    def decorate(f):
-        endpoint = f.__name__
+    def decorate(function):
+        endpoint = function.__name__
         kw.setdefault('endpoint', endpoint)
-        view_map[endpoint] = f
-        new_rule = '/' + f.__name__ if rule is None else rule
-        url_map.add(Rule(new_rule, **kw))
-        return f
-    if callable(rule):
-        f = rule
-        rule = None
-        return decorate(f)
+        view_map[endpoint] = function
+        rule = Rule('/' + function.__name__ if path is None else path, **kw)
+        url_map.add(rule)
+        function._routing_rule = rule
+        return function
+
+    if callable(path):
+        # decorate() assumes "path" is a string or None, we set it to the
+        # latter to force auto-pathing.
+        function = path
+        path = None
+        return decorate(function)
+
     return decorate
 
 
@@ -212,6 +217,9 @@ class Href(object):
                 endpoint[0] = endpoint[0].__name__
             return local.url_adapter.build(endpoint[0], values, force_external=_external)
         return wrapper
+
+    __getitem__ = __getattr__
+
 
 href = Href()
 
@@ -243,16 +251,20 @@ def html(template, **data):
     """Render a HTML template."""
     tmpl = template_loader.load(template)
     context = {}
-    context_setup_signal(context)
+    context_setup.dispatch(context)
     context.update(data)
-    stream = tmpl.generate(
-        **context
-        )
+    stream = tmpl.generate(**context)
     return stream
 
 
 def load_static_map(mapping_file):
-    """Load a mapping of real filenames to pre-processed hashed filenames."""
+    """Load a mapping of real filenames to pre-processed hashed filenames.
+
+    The mapping file should consist of lines in the format:
+        <hash>.<ext> <filename>.<ext>
+    eg.
+        243045720e30559c1a77e6ef1585a76c.js jquery.corners.min.js
+    """
     map = {}
     with open(mapping_file) as fd:
         for line in fd:
@@ -286,3 +298,25 @@ def run_server(host='localhost', port=0xdead, static_path=None, debug=False,
     serving.run_simple(host, port, application, use_reloader=debug)
 
 
+def process_form(template, validator, **context):
+    """Perform "typical" processing of a template form.
+
+    This means checking that a form has been POSTed and is valid.
+
+    :param template: A Genshi stream, or template filename as a string.
+    :param validator: flam.validate.Form object.
+    :param context: Template context parameters.
+    :returns: A tuple of (valid, response).
+    """
+    if isinstance(template, basestring):
+        template = html(template, **context)
+    form = request.form
+
+    if not form:
+        return False, template
+
+    validation_context = validator.validate(form)
+    if validation_context.errors:
+        return False, template | HTMLFormFiller(data=form) | validation_context.inject_errors()
+
+    return True, template

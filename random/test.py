@@ -1,5 +1,5 @@
-from flam.web.auth import *
 from flam.web import *
+from flam.web.auth import *
 
 
 class User(object):

@@ -155,7 +155,7 @@ class Application(object):
 
 def flash(text, type=INFO):
     """Flash a message to the user on next request."""
-    flash_message['text'] = message
+    flash_message['text'] = text
     flash_message['type'] = type
 
 
@@ -307,17 +307,3 @@ def process_form(template, validator, **context):
         return False, template | HTMLFormFiller(data=form) | validation_context.inject_errors()
 
     return True, template
-
-
-def get_session_user():
-    return session.get('username', None)
-
-
-def set_session_user(username):
-    """Set the session user."""
-    session['username'] = username
-
-
-def clear_session_user():
-    """Clear the session user."""
-    session.pop('username', None)

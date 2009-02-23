@@ -39,7 +39,7 @@ application = local('application')
 flash_message = local('flash_message')
 request = local('request')
 session = local('session')
-user = local('session')
+user = local('user')
 # URL routing rules
 url_map = Map([Rule('/static/<file>', endpoint='static', build_only=True)])
 # URL routing endpoint to callback mapping.

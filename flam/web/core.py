@@ -1,6 +1,7 @@
 from __future__ import with_statement
 
 import hashlib
+import inspect
 import logging
 import mimetypes
 import os
@@ -175,13 +176,29 @@ def expose(path=None, **kw):
     """Expose a function as a routing endpoint.
 
     If arguments are omitted, the wrapped function name will be used as the
-    rule name and routing path.
+    rule name and routing path. Any positional arguments will be treated as
+    parameterised path components.
+
+    >>> @expose
+    ... def user(username):
+    ...   print username
+    >>> Href().user(username='bob')
+    '/user/bob'
     """
     def decorate(function):
         endpoint = function.__name__
         kw.setdefault('endpoint', endpoint)
         view_map[endpoint] = function
-        rule = Rule('/' + function.__name__ if path is None else path, **kw)
+        if path is None:
+            inferred_path = '/' + function.__name__
+            args, _, _, defaults = inspect.getargspec(function)
+            if args:
+                if defaults:
+                    args = args[:-len(defaults)]
+                inferred_path += '/<' + '>/<'.join(args) + '>'
+        else:
+            inferred_path = path
+        rule = Rule(inferred_path, **kw)
         url_map.add(rule)
         function._routing_rule = rule
         return function
@@ -191,7 +208,9 @@ def expose(path=None, **kw):
         # latter to force auto-pathing.
         function = path
         path = None
-        return decorate(function)
+        decorator = decorate(function)
+        decorator.__name__ = function.__name__
+        return decorator
 
     return decorate
 
@@ -200,11 +219,11 @@ class Href(object):
     """A convenience object for referring to endpoints.
 
     >>> href = Href()
-    >>> @expose
-    ... def index():
+    >>> @expose('/test/<token>')
+    ... def test(token):
     ...   pass
-    >>> href.index()
-    '/index'
+    >>> href.test(token='foo', q=10)
+    '/test/foo?q=10'
     """
     def __getattr__(self, endpoint):
         endpoint = [endpoint]

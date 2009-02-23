@@ -40,6 +40,7 @@ application = local('application')
 flash_message = local('flash_message')
 request = local('request')
 session = local('session')
+url_adapter = local('url_adapter')
 # URL routing rules
 url_map = Map([Rule('/static/<file>', endpoint='static', build_only=True)])
 # URL routing endpoint to callback mapping.
@@ -196,13 +197,27 @@ def expose(path=None, **kw):
 
 
 class Href(object):
-    """A convenience object for referring to endpoints."""
+    """A convenience object for referring to endpoints.
+
+    >>> href = Href()
+    >>> @expose
+    ... def index():
+    ...   pass
+    >>> href.index()
+    '/index'
+    """
     def __getattr__(self, endpoint):
         endpoint = [endpoint]
         def wrapper(_external=False, **values):
             if callable(endpoint[0]):
                 endpoint[0] = endpoint[0].__name__
-            return local.url_adapter.build(endpoint[0], values, force_external=_external)
+            if 'url_adapter' in local:
+                adapter = local.url_adapter
+            else:
+                # TODO(alec) The hostname should be specified in the
+                # Application object somewhere, rather than being hard-coded.
+                adapter = url_map.bind('localhost')
+            return adapter.build(endpoint[0], values, force_external=_external)
         return wrapper
 
     __getitem__ = __getattr__
@@ -260,10 +275,20 @@ def load_static_map(mapping_file):
     return map
 
 
-def run_server(host='localhost', port=0xdead, static_path=None, debug=False,
-               log_level=logging.WARNING, template_paths=None,
-               cookie_name=None, static_map=None):
-    """Start a new standalone application server."""
+def wsgi_application(static_path=None, debug=False, log_level=logging.WARNING,
+                     template_paths=None, cookie_name=None, static_map=None):
+    """Create a new WSGI application object.
+
+    :param static_path: Path to static content, mapped to /static.
+    :param debug: Whether to enable debug mode. This enables the Werkzeug
+                  debugging middleware, alters the logging level, and possibly
+                  other stuff.
+    :param log_level: Default log level.
+    :param template_paths: Template paths, defaults to ['templates'].
+    :param cookie_name: A unique cookie name for the application. If one is not
+                        provided, a name derived from sys.argv[0] will be used.
+    :param static_map: Static content map filename or dictionary.
+    """
     global template_loader, session_store
     session_store = FilesystemSessionStore()
     template_loader = TemplateLoader(template_paths or ['templates'],
@@ -282,6 +307,13 @@ def run_server(host='localhost', port=0xdead, static_path=None, debug=False,
     if not static_path:
         static_path = os.path.join(os.getcwd(), 'static')
     application = SharedDataMiddleware(application, {'/static': static_path})
+    return application
+
+
+def run_server(host='localhost', port=0xdead, **args):
+    """Start a new standalone application server."""
+    application = wsgi_application(**args)
+    debug = args.get('debug', False)
     serving.run_simple(host, port, application, use_reloader=debug)
 
 
@@ -307,3 +339,8 @@ def process_form(template, validator, **context):
         return False, template | HTMLFormFiller(data=form) | validation_context.inject_errors()
 
     return True, template
+
+
+if __name__ == '__main__':
+    import doctest
+    doctest.testmod()

@@ -211,8 +211,23 @@ class Signal(object):
 
     Listeners connect functions to signals. All listeners are called when the
     producer calls the signal.
+
+    >>> trigger = Signal()
+    >>> def func1():
+    ...   print 'func1()'
+    >>> def func2():
+    ...   print 'func2()'
+    >>> trigger.connect(func1)
+    >>> trigger.connect(func2)
+    >>> trigger()
+    func1()
+    func2()
     """
     def __init__(self, limit=None):
+        """Construct a new Signal.
+
+        :param limit: Number of callbacks allowed in the FIFO.
+        """
         self._callbacks = []
         self._limit = limit
 
@@ -221,7 +236,6 @@ class Signal(object):
         self._callbacks.append(callback)
         if self._limit is not None and len(self._callbacks) > self._limit:
             del self._callbacks[:len(self._callbacks) - self._limit]
-        return callback
 
     def disconnect(self, callback):
         """Disconnect a function from the signal."""
@@ -255,7 +269,8 @@ class DecoratorSignal(Signal):
 
     def __call__(self, function):
         """Connect this DecoratorSignal to the given function."""
-        return self.connect(function)
+        self.connect(function)
+        return function
 
 
 class cached_property(object):

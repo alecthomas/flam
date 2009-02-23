@@ -66,12 +66,15 @@ Inspired by:
 """
 
 
+from flam.core import Error
+
+
 __all__ = ['Error', 'UnknownFeature', 'Sequence',
            'deferred', 'FeatureBroker', 'Require', 'features', 'provide',
            'extend', 'append', 'require', 'remove']
 
 
-class Error(Exception):
+class Error(Error):
     """Base feature exception."""
 
 

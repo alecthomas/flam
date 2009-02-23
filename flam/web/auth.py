@@ -30,7 +30,7 @@ There are four aspects to authentication in Flam:
 The only hook that *must* be implemented by an application requiring
 authentication is @user_loader. If the returned objects has a password
 attribute then authentication will "just work". A default
-@authentication_handler will be used that assumes the existence of an
+@authentication_handler will be used that assumes the existence of a
 "login.html" with a single "login" form containing a "username" and "password".
 
 eg.

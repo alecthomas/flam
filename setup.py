@@ -39,6 +39,9 @@ class build_py(_build_py):
     def update_auto_imports(self, module_map):
         inside = 0
 
+        # Prioritise symbols from flam.core over all others.
+        core = module_map.pop('flam.core')
+
         for line in fileinput.input('flam/__init__.py', inplace=1):
             if '# BEGIN IMPORTS' in line:
                 inside = 1
@@ -50,7 +53,9 @@ class build_py(_build_py):
             if inside != 2:
                 sys.stdout.write(line)
             if inside == 1:
+                print '    %r: %r,' % ('flam.core', core)
                 for name, symbols in module_map.items():
+                    symbols = list(set(symbols) - set(core))
                     print '    %r: %r,' % (name, symbols)
 
 

@@ -15,14 +15,15 @@ all_by_module = {
     # build".
 
     # BEGIN IMPORTS
-    'flam.config': ['Configuration', 'Option', 'IntOption', 'FloatOption', 'ListOption', 'BoolOption'],
-    'flam.web.auth': ['authenticator', 'user_loader', 'authentication_handler', 'require_authentication', 'user', 'get_session_user', 'set_session_user', 'clear_session_user'],
-    'flam.web.core': ['expose', 'run_server', 'static_resource', 'json', 'Request', 'Response', 'application', 'local', 'html', 'request', 'href', 'redirect', 'static', 'flash', 'INFO', 'WARNING', 'ERROR', 'context_setup', 'request_setup', 'request_teardown', 'HTML', 'tag', 'session', 'process_form'],
-    'flam.validate': ['ValidationError', 'Aspect', 'Chain', 'Range', 'Min', 'Max', 'Length', 'MinLength', 'MaxLength', 'Pattern', 'In', 'Empty', 'AnyOf', 'Not', 'FormInjector', 'Field', 'Context', 'Form'],
-    'flam.adaption': ['Error', 'InvalidAdaption', 'Adaption', 'Adapter', 'adapt', 'adapts', 'remove'],
-    'flam.util': ['URI', 'Signal', 'DecoratorSignal', 'cached_property', 'to_iso_time', 'from_iso_time', 'to_boolean', 'to_list', 'get_last_traceback', 'random_sleep'],
-    'flam.aspects': ['weave', 'AspectBase', 'DeferredAspect', 'Aspect'],
-    'flam.features': ['Error', 'UnknownFeature', 'Sequence', 'deferred', 'FeatureBroker', 'Require', 'features', 'provide', 'extend', 'append', 'require', 'remove'],
+    'flam.core': ['Error'],
+    'flam.config': ['ListOption', 'Option', 'IntOption', 'FloatOption', 'BoolOption', 'Configuration'],
+    'flam.web.auth': ['require_authentication', 'get_session_user', 'authentication_handler', 'user_loader', 'authenticator', 'set_session_user', 'user', 'clear_session_user'],
+    'flam.web.core': ['static_resource', 'run_server', 'process_form', 'session', 'static', 'redirect', 'context_setup', 'flash', 'application', 'json', 'WARNING', 'tag', 'local', 'Response', 'request_teardown', 'request_setup', 'HTML', 'expose', 'Request', 'ERROR', 'INFO', 'request', 'html', 'href'],
+    'flam.validate': ['ValidationError', 'Chain', 'Min', 'Pattern', 'MaxLength', 'Range', 'Field', 'Length', 'MinLength', 'Aspect', 'Context', 'Max', 'Not', 'FormInjector', 'In', 'AnyOf', 'Empty', 'Form'],
+    'flam.adaption': ['adapts', 'Adapter', 'remove', 'adapt', 'InvalidAdaption', 'Adaption'],
+    'flam.util': ['to_boolean', 'cached_property', 'Signal', 'to_list', 'URI', 'to_iso_time', 'from_iso_time', 'DecoratorSignal', 'get_last_traceback', 'random_sleep'],
+    'flam.aspects': ['DeferredAspect', 'AspectBase', 'Aspect', 'weave'],
+    'flam.features': ['features', 'extend', 'Sequence', 'provide', 'Require', 'FeatureBroker', 'remove', 'deferred', 'UnknownFeature', 'require', 'append'],
     # END IMPORTS
     }
 

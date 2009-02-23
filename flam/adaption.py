@@ -62,13 +62,14 @@ InvalidAdaption: Could not adapt [1, 2, 3] to 'text/plain'.
 
 
 from inspect import isclass
+from flam import Error
 from flam.features import FeatureBroker, UnknownFeature, features
 
 
 __all__ = ['Error', 'InvalidAdaption', 'Adaption', 'Adapter', 'adapt',
            'adapts', 'remove']
 
-class Error(Exception):
+class Error(Error):
     """Base adaption exception."""
 
 

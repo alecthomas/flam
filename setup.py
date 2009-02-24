@@ -66,7 +66,7 @@ setup(
     name='flam',
     url='http://swapoff.org/flam',
     download_url='http://swapoff.org/flam',
-    version='0.0.1',
+    version='0.0.2',
     description='A minimalist Python application framework.',
     license='BSD',
     platforms=['any'],
@@ -75,4 +75,10 @@ setup(
     author_email='alec@swapoff.org',
     cmdclass={'build_py': build_py},
     test_suite = 'nose.collector',
+    install_requires = [
+        'setuptools >= 0.6b1',
+        'Genshi >= 0.5',
+        'simplejson >= 2.0.0',
+        'Werkzeug >= 0.4',
+    ],
     )

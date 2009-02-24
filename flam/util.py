@@ -231,6 +231,10 @@ class Signal(object):
         self._callbacks = []
         self._limit = limit
 
+    def reset(self):
+        """Reset signal state."""
+        self._callbacks = []
+
     def connect(self, callback):
         """Connect a function to the signal."""
         self._callbacks.append(callback)

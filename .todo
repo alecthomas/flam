@@ -3,7 +3,7 @@
     <title>
         flam /flæm/ noun, verb, flammed, flam⋅ming. Informal. –noun 1. a deception or trick. 2. a falsehood; lie. –verb (used with object), verb (used without object) 3. to deceive; delude; cheat.
     </title>
-    <note priority="veryhigh" time="1235048289">
+    <note priority="veryhigh" time="1235048289" done="1235433815">
         Authentication / user object loading / auth login handling.
     </note>
     <note priority="medium" time="1235048317">
@@ -12,7 +12,7 @@
     <note priority="medium" time="1235048327">
         Pluggable session stores (eg. DB backed)
     </note>
-    <note priority="medium" time="1235048339">
+    <note priority="medium" time="1235048339" done="1235433813">
         WSGI deployment - fix run_server().
     </note>
     <note priority="medium" time="1235048350">

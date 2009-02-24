@@ -16,16 +16,19 @@ class build_py(_build_py):
 
     def run(self):
         log.info('updating auto import map in flam/__init__.py')
-        module_map = self.find_modules()
-        self.update_auto_imports(module_map)
+        module_map = self._find_modules()
+        self._update_auto_imports(module_map)
         _build_py.run(self)
 
-    def find_modules(self):
+    def _find_modules(self):
         module_map = {}
         symbols = set()
         for dir, dirs, files in os.walk('flam'):
             modules = [os.path.join(dir, file).replace('.py', '').replace('/', '.')
-                       for file in files if not file.startswith('_') and file.endswith('.py')]
+                       for file in files
+                       if not file.startswith('_')
+                       and file.endswith('.py')
+                       and 'test' not in file]
             for name in modules:
                 module = __import__(name, {}, {}, ['.'])
                 duplicates = symbols.intersection(module.__all__)
@@ -36,7 +39,7 @@ class build_py(_build_py):
                 module_map[name] = module.__all__
         return module_map
 
-    def update_auto_imports(self, module_map):
+    def _update_auto_imports(self, module_map):
         inside = 0
 
         # Prioritise symbols from flam.core over all others.

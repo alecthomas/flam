@@ -1,2 +1,11 @@
+0.0.3
+- Added flam.util.WeakList, a list that holds weak references to its values.
+- Form validator now supports multiple validators per field.
+- Turned flam.web into a package.
+- Added flam.web.auth, which provides basic authentication services.
+- Added flam.web.monitor, which provides a mechanism for exporting application
+  variables for monitoring.
+0.0.2
+- Bugfix release.
 0.0.1
 - Initial release.

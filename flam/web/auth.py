@@ -5,7 +5,7 @@ There are four aspects to authentication in Flam:
   1. Force authentication for a particular URL.
 
       @expose('/')
-      @require_authentication
+      @authenticate
       def index():
         ...
 
@@ -51,7 +51,7 @@ from flam.web.core import view_map
 
 __all__ = [
     'authenticator', 'user_loader', 'authentication_handler',
-    'require_authentication', 'user', 'get_session_user', 'set_session_user',
+    'authenticate', 'user', 'get_session_user', 'set_session_user',
     'clear_session_user',
     ]
 
@@ -79,11 +79,11 @@ def default_authenticator(user, password):
     return user.password == password
 
 
-def require_authentication(function):
+def authenticate(function):
     """Decorator to force authentication for a request handler."""
     def decorator(*args, **kwargs):
         if not user:
-            return redirect(href[_user_authentication_endpoint]())
+            return redirect(href[_user_authentication_endpoint](r=request.path))
         return function(*args, **kwargs)
     decorator.__name__ = function.__name__
     return decorator
@@ -136,7 +136,7 @@ def login():
         return html('login.html') | HTMLFormFiller(data=form)
     session['username'] = form['username']
     # TODO(alec) How do we pass the redirect target, default or explicit?
-    return redirect(href.index())
+    return redirect(request.args.get('r', href.index()))
 
 
 def get_session_user():

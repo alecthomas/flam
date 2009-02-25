@@ -20,7 +20,7 @@ def fetch_user(username):
 
 
 @expose('/')
-@require_authentication
+@authenticate
 def index():
     return HTML("""
         <body>Foo %s <a href="%s">logout</a></body>

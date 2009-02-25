@@ -24,7 +24,7 @@ Or through callbacks with monitor.variable():
 """
 
 
-__all__ = ['Monitor', 'Variables', 'variable', 'register']
+__all__ = ['Monitor', 'Variables', 'variable']
 
 
 import weakref
@@ -125,18 +125,14 @@ variable = _monitor.variable
 Variables = _monitor.container
 
 
+@expose
 def monitor():
-    format = request.args.get('format', 'json')
+    format = request.args.get('format', 'text')
     if format == 'json':
         return json(_monitor.export())
     else:
         return Response('\n'.join('%s=%r' % (k, v) for k, v
                                   in _monitor.export().items()))
-
-
-def register():
-    """Register request handler for monitor variables."""
-    expose(monitor)
 
 
 if __name__ == '__main__':

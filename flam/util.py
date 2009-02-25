@@ -16,12 +16,13 @@ import time
 import urllib
 import random
 import time
+import weakref
 
 
 __all__ = [
     'URI', 'Signal', 'DecoratorSignal', 'cached_property', 'to_iso_time',
     'from_iso_time', 'to_boolean', 'to_list', 'get_last_traceback',
-    'random_sleep',
+    'random_sleep', 'WeakList',
     ]
 
 
@@ -275,6 +276,20 @@ class DecoratorSignal(Signal):
         """Connect this DecoratorSignal to the given function."""
         self.connect(function)
         return function
+
+
+class WeakList(list):
+    """A list with weak references to its values."""
+
+    def append(self, value):
+        super(WeakList, self).append(weakref.proxy(value, self.remove))
+
+    def insert(self, index, value):
+        super(WeakList, self).insert(index, weakref.proxy(value, self.remove))
+
+    def extend(self, sequence):
+        for value in sequence:
+            self.append(value)
 
 
 class cached_property(object):

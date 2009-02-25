@@ -1,23 +1,27 @@
-from flam.web import *
-from flam.web.auth import *
-
+from flam import *
 
 class User(object):
+    stats = Variables('user', user_loads=0)
+
     def __init__(self, username, password):
+        self.stats.user_loads += 1
         self.username = username
         self.password = password
 
 
+@variable
+def time():
+    import time
+    return time.time()
+
 @user_loader
 def fetch_user(username):
-    print 'Loading user', username
     return User(username, 'foo')
 
 
 @expose('/')
 @require_authentication
 def index():
-    print 'index', user
     return HTML("""
         <body>Foo %s <a href="%s">logout</a></body>
         """ % (user.username, href.logout()))

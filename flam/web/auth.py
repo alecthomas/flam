@@ -135,8 +135,7 @@ def login():
         flash('Invalid credentials.', type=ERROR)
         return html('login.html') | HTMLFormFiller(data=form)
     session['username'] = form['username']
-    # TODO(alec) How do we pass the redirect target, default or explicit?
-    return redirect(request.args.get('r', href.index()))
+    return redirect(request.args.get('r', '/'))
 
 
 def get_session_user():

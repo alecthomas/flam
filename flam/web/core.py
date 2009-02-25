@@ -176,21 +176,23 @@ def expose(path=None, **kw):
     """Expose a function as a routing endpoint.
 
     If arguments are omitted, the wrapped function name will be used as the
-    rule name and routing path. Any positional arguments will be treated as
-    parameterised path components.
+    rule name and routing path. Underscores in the function name will be
+    converted to URL path separators and positional arguments will be treated
+    as parameterised path components.
 
     >>> @expose
-    ... def user(username):
+    ... def user_view(username):
     ...   print username
-    >>> Href().user(username='bob')
-    '/user/bob'
+    >>> Href().user_view(username='bob')
+    '/user/view/bob'
     """
     def decorate(function):
         endpoint = function.__name__
         kw.setdefault('endpoint', endpoint)
         view_map[endpoint] = function
+        # Introspect rule path from function name and arguments.
         if path is None:
-            inferred_path = '/' + function.__name__
+            inferred_path = '/' + function.__name__.replace('_', '/')
             args, _, _, defaults = inspect.getargspec(function)
             if args:
                 if defaults:

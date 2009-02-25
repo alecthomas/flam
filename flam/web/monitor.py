@@ -127,6 +127,12 @@ Variables = _monitor.container
 
 @expose
 def monitor():
+    """Monitoring request handler under /monitor.
+
+    By default dumps plain text with lines in the form key=value. Alternative
+    formats can be output using format=N, with "json" the only currently
+    supported format.
+    """
     format = request.args.get('format', 'text')
     if format == 'json':
         return json(_monitor.export())

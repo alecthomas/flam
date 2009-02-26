@@ -26,7 +26,7 @@ from flam.util import to_boolean, to_list, URI
 
 
 __all__ = ['Configuration', 'Option', 'IntOption', 'FloatOption', 'ListOption',
-           'BoolOption']
+           'BoolOption', 'URIOption']
 
 
 class Option(object):

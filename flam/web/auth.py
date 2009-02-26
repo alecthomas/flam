@@ -70,6 +70,12 @@ def setup_user():
         local.user = user_loader.dispatch(username)
 
 
+@context_setup
+def setup_template_context(context):
+    context['username'] = session.get('username', None)
+    context['user'] = user
+
+
 @authenticator
 def default_authenticator(user, password):
     """Default user authenticator.

@@ -66,7 +66,7 @@ setup(
     name='flam',
     url='http://swapoff.org/flam',
     download_url='http://swapoff.org/flam',
-    version='0.0.4',
+    version='0.0.5',
     description='A minimalist Python application framework.',
     license='BSD',
     platforms=['any'],

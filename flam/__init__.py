@@ -9,6 +9,18 @@ Flam - A minimalist Python application framework.
 from types import ModuleType
 import sys
 
+__author__ = 'Alec Thomas <alec@swapoff.org>'
+
+# Try and determine the version of flam according to pkg_resources.
+try:
+    from pkg_resources import get_distribution, ResolutionError
+    try:
+        __version__ = get_distribution('flam').version
+    except ResolutionError:
+        __version__ = None # unknown
+except ImportError:
+    __version__ = None # unknown
+
 
 all_by_module = {
     # XXX Do not delete this section. It is automatically rebuilt by "setup
@@ -61,6 +73,8 @@ new_module.__dict__.update({
     '__file__': __file__,
     '__path__': __path__,
     '__doc__':  __doc__,
-    '__all__':  tuple(object_origins) + tuple(attribute_modules)
+    '__all__':  tuple(object_origins) + tuple(attribute_modules),
+    '__version__': __version__,
+    '__author__': __author__,
 })
 

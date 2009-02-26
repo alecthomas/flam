@@ -136,7 +136,7 @@ def login():
 
     # Authenticate the user.
     user = user_loader.dispatch(form['username'])
-    if not authenticator.dispatch(user, form['password']):
+    if user is None or not authenticator.dispatch(user, form['password']):
         clear_session_user()
         flash('Invalid credentials.', type=ERROR)
         return html('login.html') | HTMLFormFiller(data=form)

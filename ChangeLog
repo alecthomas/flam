@@ -1,3 +1,5 @@
+0.0.4
+- Correctly export username and user object to templates.
 0.0.3
 - Added flam.util.WeakList, a list that holds weak references to its values.
 - Form validator now supports multiple validators per field.

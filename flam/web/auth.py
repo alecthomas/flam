@@ -65,14 +65,14 @@ _user_authentication_endpoint = None
 
 @request_setup
 def setup_user():
-    username = session.get('username', None)
+    username = get_session_user()
     if username is not None:
         local.user = user_loader.dispatch(username)
 
 
 @context_setup
 def setup_template_context(context):
-    context['username'] = session.get('username', None)
+    context['username'] = get_session_user()
     context['user'] = user
 
 
@@ -140,7 +140,7 @@ def login():
         clear_session_user()
         flash('Invalid credentials.', type=ERROR)
         return html('login.html') | HTMLFormFiller(data=form)
-    session['username'] = form['username']
+    set_session_user(form['username'])
     return redirect(request.args.get('r', '/'))
 
 

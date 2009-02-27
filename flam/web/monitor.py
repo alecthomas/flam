@@ -109,7 +109,27 @@ class Monitor(object):
         return wrapper
 
     def container(self, namespace, **defaults):
-        """Return a namespaced monitor variable container."""
+        """Return a namespaced monitor variable container.
+
+        >>> monitor = Monitor()
+
+        Variable defaults can be set via keyword arguments:
+
+        >>> container = monitor.container('system', uptime=10)
+        >>> container
+        {'system.uptime': 10}
+
+        Or set on the container directly:
+
+        >>> container.hostname = 'localhost'
+        >>> container
+        {'system.hostname': 'localhost', 'system.uptime': 10}
+
+        Variables are reflected back to the monitor:
+
+        >>> monitor.export()
+        {'system.hostname': 'localhost', 'system.uptime': 10}
+        """
         return Container(self._variables, namespace, **defaults)
 
     def export(self):
@@ -118,6 +138,9 @@ class Monitor(object):
         data.update((name, callback()) for name, callback
                     in self._callbacks.iteritems())
         return data
+
+    def __repr__(self):
+        return str(self.export())
 
 
 _monitor = Monitor()

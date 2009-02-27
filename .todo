@@ -21,4 +21,10 @@
     <note priority="low" time="1235641244">
         Dynamically combine and cache js and css into one file on render.
     </note>
+    <note priority="medium" time="1235687944">
+        Allow default authentication handler to be at a different URL than /login.
+    </note>
+    <note priority="medium" time="1235687977">
+        Allow default authentication_handler to redirect to a location that's not /.
+    </note>
 </todo>

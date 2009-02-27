@@ -111,6 +111,8 @@ class URIOption(ConvertingOption):
     >>> config = Config(args=['--db=mysql://localhost:5001/db'])
     >>> config.db
     URI(u'mysql://localhost:5001/db')
+    >>> config.db.scheme
+    'mysql'
     """
     def convert(self, value):
         return URI(value)
@@ -175,7 +177,11 @@ class Configuration(object):
         >>> class Config(Configuration):
         ...   age = IntOption('Age.')
         >>> from StringIO import StringIO
-        >>> conf_file = StringIO('age=10')
+        >>> conf_file = StringIO('''
+        ...   # This is a comment followed by a blank line
+        ...
+        ...   age=10
+        ...   ''')
         >>> config = Config(conf_file)
         >>> config.age
         10
@@ -215,4 +221,6 @@ class Configuration(object):
 
 if __name__ == '__main__':
     import doctest
-    doctest.testmod()
+    verbose = '-v' in sys.argv
+    sys.argv = []
+    doctest.testmod(verbose=verbose)

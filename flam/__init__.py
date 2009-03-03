@@ -1,4 +1,13 @@
 # encoding: utf-8
+#
+# Copyright (C) 2008-2009 Alec Thomas <alec@swapoff.org
+# All rights reserved.
+#
+# This software is licensed as described in the file COPYING, which
+# you should have received as part of this distribution.
+#
+# Author: Alec Thomas <alec@swapoff.org>
+
 """flam /flæm/ noun, verb, flammed, flam⋅ming. Informal. –noun 1. a deception
 or trick. 2. a falsehood; lie. –verb (used with object), verb (used without
 object) 3. to deceive; delude; cheat.

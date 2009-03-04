@@ -282,17 +282,55 @@ class DecoratorSignal(Signal):
 
 
 class WeakList(list):
-    """A list with weak references to its values."""
+    """A list with weak references to its values.
+
+    Weak references can not be created to builtin types, so we need to create
+    some trivial subclasses:
+
+    >>> class mylist(list): pass
+    >>> class mydict(dict): pass
+    >>> a = mylist([1, 2])
+    >>> b = mydict({1: 2})
+
+    Add the references to our WeakList:
+
+    >>> things = WeakList()
+    >>> things.append(a)
+    >>> things.insert(0, b)
+    >>> things
+    [{1: 2}, [1, 2]]
+
+    Then delete the original references, dropping the weak references:
+
+    >>> del a
+    >>> things
+    [{1: 2}]
+    >>> del b
+    >>> things
+    []
+    """
 
     def append(self, value):
-        super(WeakList, self).append(weakref.proxy(value, self.remove))
+        ref = weakref.proxy(value, self._clear_reference)
+        super(WeakList, self).append(ref)
 
     def insert(self, index, value):
-        super(WeakList, self).insert(index, weakref.proxy(value, self.remove))
+        ref = weakref.proxy(value, self._clear_reference)
+        super(WeakList, self).insert(index, ref)
 
     def extend(self, sequence):
         for value in sequence:
             self.append(value)
+
+    def _clear_reference(self, ref):
+        for i, value in enumerate(self):
+            if value is ref:
+                del self[i]
+                return
+        raise ValueError('could not find weakref %r to remove' % ref)
+
+    def __repr__(self):
+        return '[%s]' % ', '.join(str(i) for i in self)
 
 
 class cached_property(object):

@@ -8,6 +8,8 @@
 #
 # Author: Alec Thomas <alec@swapoff.org>
 
+"""Flam web framework core."""
+
 from __future__ import with_statement
 
 import hashlib

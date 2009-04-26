@@ -177,9 +177,7 @@ class Configuration(object):
         self._values = optparse.Values(defaults)
         if file is not None:
             self.read(file)
-        # TODO(alec) We should preserve args somewhere...
-        _, args = self._parser.parse_args(args or sys.argv[1:], values=self._values)
-        self.__dict__.update(self._values.__dict__)
+        self.parse_args(args or [])
 
     def read(self, file):
         """Read option configuration from a file-like object or a filename.
@@ -197,7 +195,16 @@ class Configuration(object):
         {'age': 10}
         """
         file_args = self._read_args(file)
-        self._parser.parse_args(file_args, values=self._values)
+        self.parse_args(file_args)
+
+    def parse_args(self, args):
+        """Parse command-line args.
+
+        :param args: Command-line args, not including sys.argv[0].
+        """
+        # TODO(alec) We should preserve args somewhere...
+        _, args = self._parser.parse_args(args, values=self._values)
+        self.__dict__.update(self._values.__dict__)
 
     def __repr__(self):
         return repr(self._values.__dict__)
@@ -214,8 +221,10 @@ class Configuration(object):
 
     def _read_args(self, file):
         args = []
+        close_file = False
         if isinstance(file, basestring):
             file = open(file)
+            close_file = True
         try:
             for line in file:
                 line = line.strip()
@@ -226,11 +235,10 @@ class Configuration(object):
                 args.append(value.strip())
             return args
         finally:
-            file.close()
+            if close_file:
+                file.close()
 
 
 if __name__ == '__main__':
     import doctest
-    verbose = '-v' in sys.argv
-    sys.argv = []
-    doctest.testmod(verbose=verbose)
+    doctest.testmod()

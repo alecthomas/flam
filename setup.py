@@ -31,6 +31,9 @@ class build_py(_build_py):
                        and 'test' not in file]
             for name in modules:
                 module = __import__(name, {}, {}, ['.'])
+                if not hasattr(module, '__all__'):
+                    logging.fatal('fatal: %s.__all__ is required', module.__name__)
+                    sys.exit(1)
                 duplicates = symbols.intersection(module.__all__)
                 if duplicates:
                     log.warn('warning: Duplicate symbols "%s" found in %s.'
@@ -80,5 +83,6 @@ setup(
         'Genshi >= 0.5',
         'simplejson >= 2.0.0',
         'Werkzeug >= 0.4',
+        'DirectoryQueue >= 1.4.2',
     ],
     )

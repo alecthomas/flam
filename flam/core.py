@@ -8,8 +8,24 @@
 #
 # Author: Alec Thomas <alec@swapoff.org>
 
-__all__ = ['Error']
+import logging
+
+
+__all__ = ['Error', 'log']
 
 
 class Error(Exception):
     """Base Flam exception."""
+
+
+formatter = logging.Formatter(
+    '%(asctime)s %(name)-12s %(levelname)-8s %(message)s',
+    '%Y-%m-%d %H:%M:%S',
+    )
+console = logging.StreamHandler()
+console.setLevel(logging.INFO)
+console.setFormatter(formatter)
+
+log = logging.getLogger('flam')
+log.setLevel(logging.INFO)
+log.addHandler(console)

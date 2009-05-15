@@ -117,6 +117,7 @@ class Aspect(object):
     This can be the case if validation depends on multiple fields or other
     aspects of the form.
     """
+    @staticmethod
     def apply(context, value, *aspects):
         """Apply aspects of validation to a value."""
         for aspect in aspects:
@@ -125,7 +126,6 @@ class Aspect(object):
             else:
                 value = aspect(value)
         return value
-    apply = staticmethod(apply)
 
 
 class Chain(Aspect):

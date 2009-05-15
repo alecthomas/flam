@@ -158,13 +158,14 @@ variable = _monitor.variable
 Variables = _monitor.container
 
 
-@expose
 def monitor():
-    """Monitoring request handler under /monitor.
+    """Monitoring request handler.
 
     By default dumps plain text with lines in the form key=value. Alternative
     formats can be output using format=N, with "json" the only currently
     supported format.
+
+    This request handler must be registered manually.
     """
     format = request.args.get('format', 'text')
     if format == 'json':

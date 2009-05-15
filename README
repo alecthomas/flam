@@ -98,3 +98,5 @@ An example:
     @expose('/api/users')
     def api_users():
         return json(our_user_list())
+
+    run_server()

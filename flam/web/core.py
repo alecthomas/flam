@@ -277,9 +277,10 @@ def static_resource(filename):
         fd.close()
 
 
-def json(data):
+def json(data, indent=False):
     """Convert a fundamental Python object to a JSON response."""
-    return Response(simplejson.dumps(data), content_type='application/json')
+    return Response(simplejson.dumps(data, indent=indent),
+                    content_type='application/json')
 
 
 def html(template, **data):

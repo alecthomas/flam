@@ -9,6 +9,7 @@
 # Author: Alec Thomas <alec@swapoff.org>
 
 import logging
+import optparse
 
 
 __all__ = ['Error', 'log']

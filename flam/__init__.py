@@ -32,22 +32,7 @@ except ImportError:
 
 
 all_by_module = {
-    # XXX Do not delete this section. It is automatically rebuilt by "setup
-    # build".
-
-    # BEGIN IMPORTS
     'flam.core': ['Error', 'log'],
-    'flam.messagequeue': ['Queue', 'Message'],
-    'flam.config': ['ListOption', 'Option', 'IntOption', 'URIOption', 'FloatOption', 'BoolOption', 'Configuration'],
-    'flam.web.auth': ['authenticate', 'get_session_user', 'authentication_handler', 'user_loader', 'authenticator', 'set_session_user', 'user', 'clear_session_user'],
-    'flam.web.core': ['static_resource', 'run_server', 'process_form', 'session', 'static', 'wsgi_application', 'redirect', 'context_setup', 'flash', 'application', 'json', 'WARNING', 'tag', 'local', 'Response', 'request_teardown', 'request_setup', 'HTML', 'expose', 'Request', 'ERROR', 'INFO', 'request', 'html', 'href'],
-    'flam.web.monitor': ['variable', 'Variables', 'Monitor'],
-    'flam.validate': ['ValidationError', 'Chain', 'Min', 'Pattern', 'MaxLength', 'Range', 'Field', 'Length', 'MinLength', 'Aspect', 'Context', 'Max', 'Not', 'FormInjector', 'In', 'AnyOf', 'Empty', 'Form'],
-    'flam.adaption': ['adapts', 'Adapter', 'remove', 'adapt', 'InvalidAdaption', 'Adaption'],
-    'flam.util': ['to_iso_time', 'cached_property', 'Signal', 'to_list', 'URI', 'WeakList', 'to_boolean', 'from_iso_time', 'DecoratorSignal', 'get_last_traceback', 'random_sleep'],
-    'flam.aspects': ['DeferredAspect', 'AspectBase', 'Aspect', 'weave'],
-    'flam.features': ['features', 'extend', 'Sequence', 'provide', 'Require', 'FeatureBroker', 'remove', 'deferred', 'UnknownFeature', 'require', 'append'],
-    # END IMPORTS
     }
 
 # List of modules to export directly.

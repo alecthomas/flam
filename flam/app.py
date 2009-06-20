@@ -24,9 +24,15 @@ def run(main, args=None, usage=None, version=None):
 
     This function parses and updates the global flags object, and passes
     any remaining arguments through to the main function.
+
+    :param args: Command-line arguments. Will default to sys.argv[1:].
+    :param usage: A usage string, displayed when --help is passed. If not
+                  provided, the docstring from main will be used.
+    :param version: The version of the application. If provided, adds a
+                    --version flag.
     """
     if version:
-        flags.parser.version = version
+        flags.parser.set_version(version)
     if usage:
         flags.parser.set_usage(usage)
     else:

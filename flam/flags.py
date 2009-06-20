@@ -41,7 +41,7 @@ class FlagParser(optparse.OptionParser):
     def __init__(self, *args, **kwargs):
         optparse.OptionParser.__init__(self, *args, **kwargs)
         self.add_option('--config', metavar='FILE',
-                        dest='config', help='Load flags from FILE.',
+                        dest='config', help='load flags from FILE.',
                         default=None)
 
     def parse_args(self, args=None, values=None):
@@ -56,7 +56,14 @@ class FlagParser(optparse.OptionParser):
             options.__dict__.update(overlay.__dict__)
         return options, remainder
 
+    def set_version(self, version):
+        """Set the application version."""
+        self.version = version
+        self._add_version_option()
+
+
     def _load_flags(self, filename):
+        args = []
         with open(filename) as file:
             for line in file:
                 line = line.strip()

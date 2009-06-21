@@ -53,26 +53,11 @@ class FlagParser(optparse.OptionParser):
     >>> options, _ = parser.parse_args(['--test-flag=two'])
     >>> options.test_flag
     'two'
-
-    A dummy config file with a comment:
-
-    >>> from StringIO import StringIO
-    >>> config = StringIO('''
-    ...   # ignore this comment
-    ...   test-flag = one two three
-    ...   ''')
-
-    Now load the flag from the file-like dummy object (a filename will also
-    work):
-
-    >>> options, _ = parser.parse_args(['--config', config])
-    >>> options.test_flag
-    'one two three'
     """
 
     def __init__(self, *args, **kwargs):
         optparse.OptionParser.__init__(self, *args, **kwargs)
-        self.add_option('--config', metavar='FILE', nargs=1,
+        self.add_option('--config', metavar='FILE', type=str,
                         action='callback', help='load flags from FILE',
                         callback=self._flag_loader, default=None)
 

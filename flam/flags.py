@@ -36,35 +36,76 @@ __all__ = ['add', 'flags', 'parse_args', 'parser']
 
 
 class FlagParser(optparse.OptionParser):
-    """An OptionParser that optionally loads flags from a file."""
+    """An OptionParser that optionally loads flags from a file.
+
+    >>> parser = FlagParser()
+    >>> [o.get_opt_string() for o in parser.option_list]
+    ['--help', '--config']
+
+    Flags can be loaded from a file:
+
+    Add a test flag:
+
+    >>> _ = parser.add_option('--test-flag', type=str)
+
+    It works from the command-line:
+
+    >>> options, _ = parser.parse_args(['--test-flag=two'])
+    >>> options.test_flag
+    'two'
+
+    A dummy config file with a comment:
+
+    >>> from StringIO import StringIO
+    >>> config = StringIO('''
+    ...   # ignore this comment
+    ...   test-flag = one two three
+    ...   ''')
+
+    Now load the flag from the file-like dummy object (a filename will also
+    work):
+
+    >>> options, _ = parser.parse_args(['--config', config])
+    >>> options.test_flag
+    'one two three'
+    """
 
     def __init__(self, *args, **kwargs):
         optparse.OptionParser.__init__(self, *args, **kwargs)
-        self.add_option('--config', metavar='FILE',
-                        dest='config', help='load flags from FILE.',
-                        default=None)
-
-    def parse_args(self, args=None, values=None):
-        """See optparse.OptionParser.parse_args() for details."""
-        options, remainder = \
-            optparse.OptionParser.parse_args(self, args, values)
-        if options.config:
-            args = self._load_flags(options.config) + remainder
-            overlay = options
-            options, remainder = \
-                optparse.OptionParser.parse_args(self, args)
-            options.__dict__.update(overlay.__dict__)
-        return options, remainder
+        self.add_option('--config', metavar='FILE', nargs=1,
+                        action='callback', help='load flags from FILE',
+                        callback=self._flag_loader, default=None)
 
     def set_version(self, version):
-        """Set the application version."""
+        """Set the application version.
+
+        >>> parser = FlagParser()
+        >>> parser.exit = lambda: None
+
+        Set the version and emulate calling it from the command-line:
+
+        >>> parser.set_version('0.1')
+        >>> _ = parser.parse_args(['--version'])
+        0.1
+        """
         self.version = version
         self._add_version_option()
 
 
-    def _load_flags(self, filename):
+    # Internal methods
+    def _flag_loader(self, option, opt_str, value, parser):
+        args = self._load_flags(value)
+        for arg in args:
+            parser.rargs.insert(0, arg)
+
+    def _load_flags(self, file):
         args = []
-        with open(filename) as file:
+        if isinstance(file, basestring):
+            file = open(file)
+            close = True
+        else:
+            close = False
+        try:
             for line in file:
                 line = line.strip()
                 if not line or line.startswith('#'):
@@ -72,6 +113,9 @@ class FlagParser(optparse.OptionParser):
                 key, value = line.split('=', 1)
                 args.append('--' + key.strip() + '=' + value.strip())
             return args
+        finally:
+            if close:
+                file.close()
 
 
 parser = FlagParser()

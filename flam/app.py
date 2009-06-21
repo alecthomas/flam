@@ -25,6 +25,26 @@ def run(main, args=None, usage=None, version=None):
     This function parses and updates the global flags object, and passes
     any remaining arguments through to the main function.
 
+    >>> def main(args):
+    ...   print flags.flags
+    ...   print args
+    >>> run(main, ['hello', 'world'])
+    {}
+    ['hello', 'world']
+
+    Now provide a version and call --help:
+
+    >>> try:
+    ...   run(main, args=['--help'], usage='test [options]', version='0.1')
+    ... except SystemExit:
+    ...   pass
+    Usage: test [options]
+    <BLANKLINE>
+    Options:
+      -h, --help  show this help message and exit
+      --config    load flags from FILE
+      --version   show program's version number and exit
+
     :param args: Command-line arguments. Will default to sys.argv[1:].
     :param usage: A usage string, displayed when --help is passed. If not
                   provided, the docstring from main will be used.

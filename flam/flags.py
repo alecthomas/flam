@@ -102,7 +102,6 @@ class FlagParser(optparse.OptionParser):
             if close:
                 file.close()
 
-
 parser = FlagParser()
 flags = optparse.Values()
 flag = parser.add_option

@@ -22,6 +22,8 @@ def setup():
     """Reset flag module."""
     flags.parser = flags.FlagParser()
     flags.flags = optparse.Values()
+    flags.flag = flags.parser.add_option
+    flags.parse_args = flags.parser.parse_args
 
 
 def _parser_options(parser):

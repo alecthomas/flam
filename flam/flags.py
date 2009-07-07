@@ -10,19 +10,19 @@
 
 """Global flags registry.
 
-Register new flags with add(). This is an alias for
+Register new flags with :func:`flag`. This is an alias for
 optparse.OptionParser.add_option().
 
-Call parse_args(args) to parse command-line arguments. Defaults to parsing
+The underlying optparse.OptionParser object is exposed as :data:`parser`.
+
+Call :func:`parse_args` to parse command-line arguments. Defaults to parsing
 sys.argv[1:].
 
-"flags" is an optparse.Values() object that will contain the parsed flag
+:data:`flags` is an optparse.Values() object that will contain the parsed flag
 values.
 
 The --config=FILE flag can be used to load flag values from a file consisting
 of "key = value" lines. Both empty lines and those beginning with # are ignored.
-
-The underlying optparse.OptionParser object is exposed as "parser".
 """
 
 from __future__ import with_statement
@@ -30,7 +30,7 @@ from __future__ import with_statement
 import optparse
 
 
-__all__ = ['flag', 'flags', 'parse_args', 'parser']
+__all__ = ['flag', 'flags', 'parse_args']
 
 
 
@@ -102,7 +102,28 @@ class FlagParser(optparse.OptionParser):
             if close:
                 file.close()
 
+def parse_args(args=None):
+    """Parse command-line arguments into the global :data:`flags` object.
+
+    :param args: Command-line args, not including argv[0]. Defaults to sys.argv[1:]
+    :returns: Positional arguments from :param:`args`.
+    """
+    options, args = parser.parse_args(args)
+    flags.__dict__.update(options.__dict__)
+    return args
+
+
+def flag(*args, **kwargs):
+    """Define a flag.
+
+    This has the same semantics as :method:`FlagParser.add_option`.
+
+    :param args: Positional arguments passed through to add_option.
+    :param kwargs: Keyword arguments passed through to add_option.
+    :returns: Return value from add_option.
+    """
+    return parser.add_option(*args, **kwargs)
+
+
 parser = FlagParser()
 flags = optparse.Values()
-flag = parser.add_option
-parse_args = parser.parse_args

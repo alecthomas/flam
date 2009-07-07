@@ -19,11 +19,9 @@ from flam import flags
 
 
 def setup():
-    """Reset flag module."""
+    # XXX Reset flag module state.
     flags.parser = flags.FlagParser()
     flags.flags = optparse.Values()
-    flags.flag = flags.parser.add_option
-    flags.parse_args = flags.parser.parse_args
 
 
 def _parser_options(parser):
@@ -52,6 +50,20 @@ def test_config_from_file():
 def test_global_flag_add():
     flags.flag('--test', type=int, default=9)
     assert '--test' in _parser_options(flags.parser)
+
+
+def test_global_flag_parse():
+    flags.flag('--test', type=int, default=9)
+    options, args = flags.parser.parse_args(['moo', '--test=1', 'bar'])
+    assert options.__dict__ == {'test': 1, 'config': None}
+    assert args == ['moo', 'bar']
+
+
+def test_global_flags_parse_args():
+    flags.flag('--test', type=int, default=9)
+    args = flags.parse_args(['moo', '--test=1', 'bar'])
+    assert args == ['moo', 'bar'], args
+    assert flags.flags.__dict__ == {'test': 1, 'config': None}
 
 
 def test_set_version_adds_flag():

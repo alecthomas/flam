@@ -42,6 +42,5 @@ def run(main, args=None, usage=None, version=None):
         flags.parser.set_usage(usage)
     else:
         flags.parser.set_usage(inspect.getdoc(main))
-    options, args = flags.parser.parse_args(args)
-    flags.flags.__dict__.update(options.__dict__)
+    args = flags.parse_args(args)
     main(args)

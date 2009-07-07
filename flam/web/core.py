@@ -33,6 +33,7 @@ import genshi
 import simplejson
 
 from flam.util import DecoratorSignal
+from flam.flags import flag, flags
 from flam import validate
 
 
@@ -43,6 +44,14 @@ __all__ = [
     'request_setup', 'request_teardown', 'HTML', 'tag', 'session',
     'process_form',
     ]
+
+
+flag('--port', type='int', default=0xdead,
+     help='specify port to bind HTTP server to [%default]')
+flag('--host', default='localhost',
+     help='address to bind HTTP server to [%default]')
+flag('--debug', action='store_true', default=False,
+     help='enable debug mode')
 
 
 local = Local()
@@ -91,12 +100,11 @@ class Request(Request):
 class Application(object):
     """Core WSGI application."""
 
-    def __init__(self, cookie_name=None, debug=False, static_root=None, static_map=None):
+    def __init__(self, cookie_name=None, debug=False, static_root=None):
         local.application = self
         self.cookie_name = cookie_name or os.path.basename(sys.argv[0])
         self.debug = debug
         self.static_root = static_root
-        self.static_map = static_map
 
     def __call__(self, environ, start_response):
         request = Request(environ)
@@ -158,8 +166,6 @@ class Application(object):
         def map_static(name, event):
             attrs = event[1][1]
             name = attrs.get(name)[len(prefix):]
-            if self.static_map:
-                name = self.static_map.get(name, name)
             return static(name)
         return stream | Transformer('//*[matches(@src, "^%s")]' % prefix).attr('src', map_static) | \
             Transformer('//*[matches(@href, "^%s")]' % prefix).attr('href', map_static)
@@ -291,24 +297,8 @@ def html(template, **data):
     return stream
 
 
-def load_static_map(mapping_file):
-    """Load a mapping of real filenames to pre-processed hashed filenames.
-
-    The mapping file should consist of lines in the format:
-        <hash>.<ext> <filename>.<ext>
-    eg.
-        243045720e30559c1a77e6ef1585a76c.js jquery.corners.min.js
-    """
-    map = {}
-    with open(mapping_file) as fd:
-        for line in fd:
-            v, k = line.strip().split(None, 1)
-            map[k] = v
-    return map
-
-
 def wsgi_application(static_path=None, debug=False, log_level=logging.WARNING,
-                     template_paths=None, cookie_name=None, static_map=None):
+                     template_paths=None, cookie_name=None):
     """Create a new WSGI application object.
 
     :param static_path: Path to static content, mapped to /static.
@@ -319,17 +309,14 @@ def wsgi_application(static_path=None, debug=False, log_level=logging.WARNING,
     :param template_paths: Template paths, defaults to ['templates'].
     :param cookie_name: A unique cookie name for the application. If one is not
                         provided, a name derived from sys.argv[0] will be used.
-    :param static_map: Static content map filename or dictionary.
     """
     global template_loader, session_store
     session_store = FilesystemSessionStore()
     template_loader = TemplateLoader(template_paths or ['templates'],
                                      auto_reload=debug)
 
-    if isinstance(static_map, basestring):
-        static_map = load_static_map(static_map)
     application = Application(cookie_name=cookie_name, debug=debug,
-                              static_root='/static', static_map=static_map)
+                              static_root='/static')
     if debug:
         application = DebuggedApplication(application, evalex=True)
         log_level = logging.DEBUG
@@ -342,7 +329,7 @@ def wsgi_application(static_path=None, debug=False, log_level=logging.WARNING,
     return application
 
 
-def run_server(host='localhost', port=0xdead, **args):
+def run_server(host=None, port=None, **args):
     """Start a new standalone application server.
 
     :param host: Host to bind to.
@@ -351,7 +338,8 @@ def run_server(host='localhost', port=0xdead, **args):
     """
     application = wsgi_application(**args)
     debug = args.get('debug', False)
-    serving.run_simple(host, port, application, use_reloader=debug)
+    serving.run_simple(host or flags.host, port or flags.port,
+                       application, use_reloader=debug)
 
 
 def process_form(template, validator, **context):

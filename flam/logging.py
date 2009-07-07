@@ -8,16 +8,14 @@
 #
 # Author: Alec Thomas <alec@swapoff.org>
 
+from __future__ import absolute_import
+
 import logging
 
 from flam import flags
 
 
-__all__ = ['Error', 'log']
-
-
-class Error(Exception):
-    """Base Flam exception."""
+__all__ = ['log']
 
 
 def _set_log_level(option, opt_str, value, parser):

@@ -76,7 +76,7 @@ Inspired by:
 """
 
 
-from flam.core import Error
+from flam import Error
 
 
 __all__ = ['Error', 'UnknownFeature', 'Sequence',

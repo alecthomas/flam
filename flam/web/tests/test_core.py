@@ -11,7 +11,7 @@
 import unittest
 import logging
 
-from flam import log
+from flam.logging import log
 from flam.web.core import wsgi_application, Response, Request
 from werkzeug import Client, create_environ
 

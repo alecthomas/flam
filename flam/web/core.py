@@ -32,9 +32,10 @@ from werkzeug.contrib.sessions import FilesystemSessionStore, generate_key
 import genshi
 import simplejson
 
-from flam.util import DecoratorSignal
-from flam.flags import flag, flags
 from flam import validate
+from flam.flags import flag, flags
+from flam.logging import log
+from flam.util import DecoratorSignal
 
 
 __all__ = [
@@ -122,8 +123,8 @@ class Application(object):
             session_form_token = request.form_token
             form_token = request.form.get('__FORM_TOKEN')
             if request.method == 'POST' and form_token != session_form_token:
-                logging.warning('Invalid form token %s != %s from %r',
-                                form_token, session_form_token, request)
+                log.warning('Invalid form token %s != %s from %r',
+                            form_token, session_form_token, request)
                 raise BadRequest('Invalid form token, do you have cookies enabled?')
 
             endpoint, values = adapter.match()
@@ -297,15 +298,14 @@ def html(template, **data):
     return stream
 
 
-def wsgi_application(static_path=None, debug=False, log_level=logging.WARNING,
-                     template_paths=None, cookie_name=None):
+def wsgi_application(static_path=None, debug=False, template_paths=None,
+                     cookie_name=None):
     """Create a new WSGI application object.
 
     :param static_path: Path to static content, mapped to /static.
     :param debug: Whether to enable debug mode. This enables the Werkzeug
                   debugging middleware, alters the logging level, and possibly
                   other stuff.
-    :param log_level: Default log level.
     :param template_paths: Template paths, defaults to ['templates'].
     :param cookie_name: A unique cookie name for the application. If one is not
                         provided, a name derived from sys.argv[0] will be used.
@@ -319,10 +319,7 @@ def wsgi_application(static_path=None, debug=False, log_level=logging.WARNING,
                               static_root='/static')
     if debug:
         application = DebuggedApplication(application, evalex=True)
-        log_level = logging.DEBUG
-    logging.basicConfig(level=log_level)
-    logging.getLogger('werkzeug').setLevel(log_level)
-    logging.getLogger().setLevel(log_level)
+    logging.getLogger('werkzeug').handlers = log.handlers
     if not static_path:
         static_path = os.path.join(os.getcwd(), 'static')
     application = SharedDataMiddleware(application, {'/static': static_path})
@@ -336,8 +333,9 @@ def run_server(host=None, port=None, **args):
     :param port: Port to bind to.
     :param args: Passed through to :func:`wsgi_application`.
     """
+    debug = args.get('debug', flags.debug)
+    args['debug'] = debug
     application = wsgi_application(**args)
-    debug = args.get('debug', False)
     serving.run_simple(host or flags.host, port or flags.port,
                        application, use_reloader=debug)
 

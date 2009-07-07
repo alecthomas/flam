@@ -18,7 +18,9 @@ from flam import flags
 __all__ = ['log']
 
 
+
 def _set_log_level(option, opt_str, value, parser):
+    """Flag callback for setting the log level."""
     level = getattr(logging, value.upper(), 'WARN')
     log.setLevel(level)
 
@@ -36,5 +38,5 @@ console.setLevel(logging.DEBUG)
 console.setFormatter(formatter)
 
 log = logging.getLogger('flam')
-log.setLevel(logging.WARN)
+log.setLevel(logging.FATAL)
 log.addHandler(console)

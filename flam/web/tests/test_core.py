@@ -16,12 +16,13 @@ from flam.web.core import wsgi_application, Response, Request
 from werkzeug import Client, create_environ
 
 
+# Disable log messages
 log.setLevel(logging.FATAL)
 
 
 class TestApplication(unittest.TestCase):
     def setUp(self):
-        self.app = wsgi_application(log_level=logging.FATAL)
+        self.app = wsgi_application()
         self.client = Client(wsgi_application(), Response)
 
     def test_csrf_without_token(self):

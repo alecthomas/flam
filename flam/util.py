@@ -410,7 +410,7 @@ def random_sleep(a,b):
     :param a: minimum time to sleep
     b: maximum time to sleep
     """
-    delay = random.randint(a,b)
+    delay = random.uniform(a, b)
     time.sleep(delay)
 
 

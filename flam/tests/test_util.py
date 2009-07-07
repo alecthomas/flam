@@ -22,6 +22,7 @@ def test_random_sleep(mock_sleep):
         util.random_sleep(1, 10)
     assert mock_sleep.call_count == 10000
     for args, kwargs in mock_sleep.call_args_list:
+        print args[0]
         assert 1.0 < args[0] <= 10.0
 
 

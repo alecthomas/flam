@@ -13,9 +13,9 @@ from __future__ import with_statement
 import optparse
 import os
 import sys
+from tempfile import NamedTemporaryFile
 
 from flam import flags
-from flam.util import mkstemp
 
 
 def setup():
@@ -37,7 +37,7 @@ def test_config_from_file():
     """Test basic config loading from a file."""
     parser = flags.FlagParser()
     parser.add_option('--test', type=int, default=9)
-    with mkstemp() as fd:
+    with NamedTemporaryFile() as fd:
         print >> fd, """
         # this is a comment
         test = 99
@@ -48,7 +48,7 @@ def test_config_from_file():
 
 
 def test_global_flag_add():
-    flags.add('--test', type=int, default=9)
+    flags.flag('--test', type=int, default=9)
     assert '--test' in _parser_options(flags.parser)
 
 

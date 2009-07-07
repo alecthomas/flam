@@ -11,7 +11,6 @@
 """Utility classes, constants and functions."""
 
 
-import datetime
 import posixpath
 import re
 import StringIO
@@ -23,9 +22,8 @@ import weakref
 
 
 __all__ = [
-    'URI', 'Signal', 'DecoratorSignal', 'cached_property', 'to_iso_time',
-    'from_iso_time', 'to_boolean', 'to_list', 'get_last_traceback',
-    'random_sleep', 'WeakList',
+    'URI', 'Signal', 'DecoratorSignal', 'cached_property', 'to_boolean',
+    'to_list', 'get_last_traceback', 'random_sleep', 'WeakList',
     ]
 
 
@@ -347,30 +345,6 @@ class cached_property(object):
         value = self.function(instance)
         setattr(instance, self.__name__, value)
         return value
-
-
-def to_iso_time(dtime):
-    """Convert a datetime object into a ISO8601 formatted datetime string.
-
-    Args:
-        dtime: datetime.datetime object
-
-    Returns:
-        ISO8601 formatted datetime string
-    """
-    return iso8601.tostring(time.mktime(dtime.timetuple()))
-
-
-def from_iso_time(iso):
-    """Convert an ISO8601 formatted string into a datetime object.
-    
-    Args:
-        iso: ISO8601 formatted string.
-        
-    Returns:
-        datetime.datetime object
-    """
-    return datetime.datetime.fromtimestamp(iso8601.parse(iso))
 
 
 def to_boolean(value):

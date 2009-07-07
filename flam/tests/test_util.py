@@ -9,11 +9,8 @@
 # Author: Alec Thomas <alec@swapoff.org>
 
 
-import datetime
-import logging
-
 from flam import util
-from flam.test import patch
+from mock import patch
 
 
 @patch('time.sleep')
@@ -73,16 +70,6 @@ def test_to_list_with_false_value():
 def test_to_list_from_iterables():
     assert util.to_list([1, 2]) == [1, 2]
     assert util.to_list((i for i in (1, 2, 3))) == [1, 2, 3]
-
-
-def test_from_iso_time():
-    assert util.from_iso_time('2009-01-29T22:33:44Z') == \
-           datetime.datetime(2009, 01, 29, 22, 33, 44)
-
-
-def test_to_iso_time():
-    date = datetime.datetime(2009, 01, 29, 22, 33, 44)
-    assert util.to_iso_time(date) == '2009-01-29T22:33:44Z'
 
 
 def test_cached_property():

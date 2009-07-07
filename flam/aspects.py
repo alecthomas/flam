@@ -145,7 +145,9 @@ def weave(cls, aspect, *args, **kwargs):
 #        for aspect_cls in reversed(aspects):
 #            aspect = aspect_
 #            for method in aspect.__dict__:
-        return object.__new__(cls, *args, **kwargs)
+        obj = object.__new__(cls)
+        obj.__init__(*args, **kwargs)
+        return obj
 
     cls.__new__ = classmethod(__new__)
     if not hasattr(cls, '__aspects__'):
@@ -212,7 +214,9 @@ class Aspect(AspectBase):
         if isclass(next):
             return DeferredAspect(cls, next, *args, **kwargs)
         else:
-            return super(Aspect, cls).__new__(cls, next, *args, **kwargs)
+            obj = super(Aspect, cls).__new__(cls)
+            obj.__init__(next, *args, **kwargs)
+            return obj
 
 
 

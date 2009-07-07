@@ -12,12 +12,10 @@
 
 from __future__ import with_statement
 
-import hashlib
 import inspect
 import logging
 import mimetypes
 import os
-import posixpath
 import sys
 
 from genshi import HTML
@@ -30,7 +28,7 @@ from werkzeug import Local, LocalManager, SharedDataMiddleware, Request, \
 from werkzeug.exceptions import HTTPException, BadRequest, NotFound
 from werkzeug.routing import Map, Rule
 from werkzeug.utils import cached_property
-from werkzeug.contrib.sessions import Session, FilesystemSessionStore, generate_key
+from werkzeug.contrib.sessions import FilesystemSessionStore, generate_key
 import genshi
 import simplejson
 
@@ -268,11 +266,11 @@ def static_resource(filename):
     """Serve a static resource."""
     mime_type, encoding = mimetypes.guess_type(filename)
     try:
-      fd = open(filename)
+        fd = open(filename)
     except EnvironmentError:
-      raise NotFound()
+        raise NotFound()
     try:
-      return Response(fd.read(), content_type=mime_type)
+        return Response(fd.read(), content_type=mime_type)
     finally:
         fd.close()
 
@@ -345,7 +343,12 @@ def wsgi_application(static_path=None, debug=False, log_level=logging.WARNING,
 
 
 def run_server(host='localhost', port=0xdead, **args):
-    """Start a new standalone application server."""
+    """Start a new standalone application server.
+
+    :param host: Host to bind to.
+    :param port: Port to bind to.
+    :param args: Passed through to :func:`wsgi_application`.
+    """
     application = wsgi_application(**args)
     debug = args.get('debug', False)
     serving.run_simple(host, port, application, use_reloader=debug)

@@ -24,9 +24,9 @@ def _set_log_level(option, opt_str, value, parser):
     level = getattr(logging, value.upper(), 'WARN')
     log.setLevel(level)
 
-flags.add('--log-level', type=str, action='callback', callback=_set_log_level,
-          help='set log level to debug, info, warning, error or fatal [%default]',
-          metavar='LEVEL', default='warning')
+flags.flag('--log-level', type=str, action='callback', callback=_set_log_level,
+           help='set log level to debug, info, warning, error or fatal [%default]',
+           metavar='LEVEL', default='warning')
 
 
 formatter = logging.Formatter(

@@ -28,10 +28,9 @@ The underlying optparse.OptionParser object is exposed as "parser".
 from __future__ import with_statement
 
 import optparse
-import sys
 
 
-__all__ = ['add', 'flags', 'parse_args', 'parser']
+__all__ = ['flag', 'flags', 'parse_args', 'parser']
 
 
 
@@ -56,6 +55,7 @@ class FlagParser(optparse.OptionParser):
     """
 
     def __init__(self, *args, **kwargs):
+        kwargs.setdefault('conflict_handler', 'resolve')
         optparse.OptionParser.__init__(self, *args, **kwargs)
         self.add_option('--config', metavar='FILE', type=str,
                         action='callback', help='load flags from FILE',
@@ -105,5 +105,5 @@ class FlagParser(optparse.OptionParser):
 
 parser = FlagParser()
 flags = optparse.Values()
-add = parser.add_option
+flag = parser.add_option
 parse_args = parser.parse_args

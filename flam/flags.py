@@ -106,7 +106,7 @@ def parse_args(args=None):
     """Parse command-line arguments into the global :data:`flags` object.
 
     :param args: Command-line args, not including argv[0]. Defaults to sys.argv[1:]
-    :returns: Positional arguments from :param:`args`.
+    :returns: Positional arguments from :data:`args`.
     """
     options, args = parser.parse_args(args)
     flags.__dict__.update(options.__dict__)
@@ -116,7 +116,7 @@ def parse_args(args=None):
 def flag(*args, **kwargs):
     """Define a flag.
 
-    This has the same semantics as :method:`FlagParser.add_option`.
+    This has the same semantics as :meth:`FlagParser.add_option`.
 
     :param args: Positional arguments passed through to add_option.
     :param kwargs: Keyword arguments passed through to add_option.

@@ -14,9 +14,13 @@
 import inspect
 
 from flam import flags
+from flam.signal import Signal
 
 
-__all__ = ['run']
+__all__ = ['run', 'on_application_init']
+
+
+on_application_init = Signal()
 
 
 def run(main, args=None, usage=None, version=None):
@@ -36,6 +40,7 @@ def run(main, args=None, usage=None, version=None):
     :param version: The version of the application. If provided, adds a
                     --version flag.
     """
+    on_application_init()
     if version:
         flags.parser.set_version(version)
     if usage:

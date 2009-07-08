@@ -34,16 +34,16 @@ import simplejson
 
 from flam import validate
 from flam.flags import flag, flags
-from flam.logging import log
-from flam.util import DecoratorSignal
+from flam.logging import log, console, on_log_level_change
+from flam.signal import Signal
 
 
 __all__ = [
     'expose', 'wsgi_application', 'run_server', 'static_resource', 'json',
     'Request', 'Response', 'application', 'local', 'html', 'request', 'href',
-    'redirect', 'static', 'flash', 'INFO', 'WARNING', 'ERROR','context_setup',
-    'request_setup', 'request_teardown', 'HTML', 'tag', 'session',
-    'process_form',
+    'redirect', 'static', 'flash', 'INFO', 'WARNING', 'ERROR',
+    'on_context_setup', 'on_request_setup', 'on_request_teardown', 'HTML',
+    'tag', 'session', 'process_form',
     ]
 
 
@@ -78,9 +78,9 @@ WARNING = 'warning'
 ERROR = 'error'
 
 
-context_setup = DecoratorSignal()
-request_setup = DecoratorSignal()
-request_teardown = DecoratorSignal()
+on_context_setup = Signal()
+on_request_setup = Signal()
+on_request_teardown = Signal()
 
 
 class Request(Request):
@@ -115,7 +115,7 @@ class Application(object):
         local.flash_message = {}
         local.session = self._create_session()
 
-        request_setup.dispatch()
+        on_request_setup(request)
 
         try:
             # CSRF protection concept borrowed from Trac.
@@ -152,7 +152,7 @@ class Application(object):
         except HTTPException, e:
             response = e
         return ClosingIterator(response(environ, start_response),
-                               [request_teardown.dispatch])
+                               [on_request_teardown])
 
     def _create_session(self):
         sid = request.cookies.get(self.cookie_name)
@@ -177,7 +177,7 @@ def flash(text, type=INFO):
     flash_message['type'] = type
 
 
-@context_setup
+@on_context_setup.connect
 def default_context_setup(context):
     """Populate the default template render context."""
     context['href'] = href
@@ -291,7 +291,7 @@ def html(template, **data):
     """Render a HTML template."""
     tmpl = template_loader.load(template)
     context = {}
-    context_setup.dispatch(context)
+    on_context_setup(context)
     context.update(data)
     stream = tmpl.generate(**context)
     return stream
@@ -318,13 +318,18 @@ def wsgi_application(static_path=None, debug=False, template_paths=None,
                               static_root='/static')
     if debug:
         application = DebuggedApplication(application, evalex=True)
-    werkzeug_logger = logging.getLogger('werkzeug')
-    werkzeug_logger.setLevel(logging.WARNING)
-    werkzeug_logger.handlers = log.handlers
     if not static_path:
         static_path = os.path.join(os.getcwd(), 'static')
     application = SharedDataMiddleware(application, {'/static': static_path})
     return application
+
+
+@on_log_level_change.connect
+def _set_werkzeug_log_level(level):
+    """Set Werkzeug log level."""
+    werkzeug_logger = logging.getLogger('werkzeug')
+    werkzeug_logger.setLevel(level)
+    werkzeug_logger.addHandler(console)
 
 
 def run_server(host=None, port=None, **args):

@@ -22,8 +22,8 @@ import weakref
 
 
 __all__ = [
-    'URI', 'Signal', 'DecoratorSignal', 'cached_property', 'to_boolean',
-    'to_list', 'get_last_traceback', 'random_sleep', 'WeakList',
+    'URI', 'cached_property', 'to_boolean', 'to_list', 'get_last_traceback',
+    'random_sleep', 'WeakList',
     ]
 
 
@@ -206,77 +206,6 @@ class URI(object):
         if self.fragment:
             uri += u'#' + urllib.quote(self.fragment)
         return uri
-
-
-class Signal(object):
-    """An object for implementing the observer pattern.
-
-    Listeners connect functions to signals. All listeners are called when the
-    producer calls the signal.
-
-    >>> trigger = Signal()
-    >>> def func1():
-    ...   print 'func1()'
-    >>> def func2():
-    ...   print 'func2()'
-    >>> trigger.connect(func1)
-    >>> trigger.connect(func2)
-    >>> trigger()
-    func1()
-    func2()
-    """
-    def __init__(self, limit=None):
-        """Construct a new Signal.
-
-        :param limit: Number of callbacks allowed in the FIFO.
-        """
-        self._callbacks = []
-        self._limit = limit
-
-    def reset(self):
-        """Reset signal state."""
-        self._callbacks = []
-
-    def connect(self, callback):
-        """Connect a function to the signal."""
-        self._callbacks.append(callback)
-        if self._limit is not None and len(self._callbacks) > self._limit:
-            del self._callbacks[:len(self._callbacks) - self._limit]
-
-    def disconnect(self, callback):
-        """Disconnect a function from the signal."""
-        self._callbacks.remove(callback)
-
-    def __call__(self, *args, **kwargs):
-        response = None
-        for callback in self._callbacks:
-            response = callback(*args, **kwargs)
-        return response
-
-
-class DecoratorSignal(Signal):
-    """Define signal callbacks with a decorator.
-
-    >>> mark = DecoratorSignal()
-    >>> @mark
-    ... def func1():
-    ...   print 'func1()'
-    >>> @mark
-    ... def func2():
-    ...   print 'func2()'
-    >>> mark.dispatch()
-    func1()
-    func2()
-    """
-
-    def dispatch(self, *args, **kwargs):
-        """Dispatch to the callbacks."""
-        return super(DecoratorSignal, self).__call__(*args, **kwargs)
-
-    def __call__(self, function):
-        """Connect this DecoratorSignal to the given function."""
-        self.connect(function)
-        return function
 
 
 class WeakList(list):

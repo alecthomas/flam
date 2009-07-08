@@ -38,7 +38,7 @@ __all__ = ['Monitor', 'Variables', 'variable']
 
 
 import weakref
-from flam.web import Response, json, request
+from flam.web.core import Response, json, request
 
 
 class Container(object):

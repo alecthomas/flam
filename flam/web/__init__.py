@@ -9,5 +9,3 @@
 # Author: Alec Thomas <alec@swapoff.org>
 
 """Flam web framework."""
-
-from flam.web.core import *

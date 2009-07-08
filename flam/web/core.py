@@ -114,7 +114,6 @@ class Application(object):
         local.url_adapter = adapter = url_map.bind_to_environ(environ)
         local.flash_message = {}
         local.session = self._create_session()
-        local.user = None
 
         request_setup.dispatch()
 
@@ -319,7 +318,9 @@ def wsgi_application(static_path=None, debug=False, template_paths=None,
                               static_root='/static')
     if debug:
         application = DebuggedApplication(application, evalex=True)
-    logging.getLogger('werkzeug').handlers = log.handlers
+    werkzeug_logger = logging.getLogger('werkzeug')
+    werkzeug_logger.setLevel(logging.WARNING)
+    werkzeug_logger.handlers = log.handlers
     if not static_path:
         static_path = os.path.join(os.getcwd(), 'static')
     application = SharedDataMiddleware(application, {'/static': static_path})

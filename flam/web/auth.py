@@ -12,7 +12,8 @@
 
 There are four aspects to authentication in Flam:
 
-  1. Force authentication for a particular URL.
+  1. Force authentication for a particular URL (important: @authenticate must
+     come after @expose)
 
       @expose('/')
       @authenticate
@@ -25,24 +26,16 @@ There are four aspects to authentication in Flam:
       def login():
         ...
 
-  3. Fetching an application-specific user object.
-
-      @user_loader
-      def fetch_user(username):
-        ...
-
-  4. Verifying a user's password.
+  3. Verifying a user's password.
 
       @authenticator
-      def authenticate(user, password):
+      def authenticate(username, password):
         ...
 
 The only hook that *must* be implemented by an application requiring
-authentication is @user_loader. If the returned objects has a password
-attribute then authentication will "just work", otherwise @authenticator must
-also be implemented. A default @authentication_handler will be used that
-assumes the existence of a "login.html" template, with a single "login" form
-containing a "username" and "password".
+authentication is @authenticator.  A default @authentication_handler will be
+used that assumes the existence of a "login.html" template, with a single
+"login" form containing a "username" and "password".
 
 eg.
   <form id="login" method="post">
@@ -56,50 +49,29 @@ from genshi.filters import HTMLFormFiller
 
 from flam import validate
 from flam.util import DecoratorSignal
-from flam.web import *
+from flam.web.core import *
 from flam.web.core import view_map
 
 
 __all__ = [
-    'authenticator', 'user_loader', 'authentication_handler',
-    'authenticate', 'user', 'get_session_user', 'set_session_user',
-    'clear_session_user',
+    'authenticator', 'authentication_handler', 'authenticate',
+    'get_session_user', 'set_session_user', 'clear_session_user',
     ]
 
 
-user = local('user')
-
-user_loader = DecoratorSignal(limit=1)
 authenticator = DecoratorSignal(limit=1)
 _user_authentication_endpoint = None
-
-
-@request_setup
-def setup_user():
-    username = get_session_user()
-    if username is not None:
-        local.user = user_loader.dispatch(username)
 
 
 @context_setup
 def setup_template_context(context):
     context['username'] = get_session_user()
-    context['user'] = user
-
-
-@authenticator
-def default_authenticator(user, password):
-    """Default user authenticator.
-
-    Assumes the application-specific "user" object has a .password attribute.
-    """
-    return user.password == password
 
 
 def authenticate(function):
     """Decorator to force authentication for a request handler."""
     def decorator(*args, **kwargs):
-        if not user:
+        if not get_session_user():
             return redirect(href[_user_authentication_endpoint](r=request.path))
         return function(*args, **kwargs)
     decorator.__name__ = function.__name__
@@ -146,12 +118,18 @@ def login():
         return html('login.html') | HTMLFormFiller(data=form) | context.inject_errors()
 
     # Authenticate the user.
-    user = user_loader.dispatch(form['username'])
-    if user is None or not authenticator.dispatch(user, form['password']):
+    username = form['username']
+    if not authenticator.dispatch(username, form['password']):
         clear_session_user()
         flash('Invalid credentials.', type=ERROR)
         return html('login.html') | HTMLFormFiller(data=form)
-    set_session_user(form['username'])
+    set_session_user(username)
+    return redirect(request.args.get('r', '/'))
+
+
+@expose
+def logout():
+    clear_session_user()
     return redirect(request.args.get('r', '/'))
 
 
@@ -163,10 +141,8 @@ def get_session_user():
 def set_session_user(username):
     """Set the session user."""
     session['username'] = username
-    local.user = user_loader.dispatch(session['username'])
 
 
 def clear_session_user():
     """Clear the session user."""
     session.pop('username', None)
-    local.user = None

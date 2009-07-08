@@ -329,7 +329,8 @@ def _set_werkzeug_log_level(level):
     """Set Werkzeug log level."""
     werkzeug_logger = logging.getLogger('werkzeug')
     werkzeug_logger.setLevel(level)
-    werkzeug_logger.addHandler(console)
+    if not werkzeug_logger.handlers:
+        werkzeug_logger.addHandler(console)
 
 
 def run_server(host=None, port=None, **args):

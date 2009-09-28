@@ -29,9 +29,13 @@ from __future__ import with_statement
 
 import optparse
 
+from flam.signal import Signal
 
-__all__ = ['flag', 'flags', 'parse_args']
 
+__all__ = ['flag', 'flags', 'parse_args', 'on_args_parsed']
+
+
+on_args_parsed = Signal()
 
 
 class FlagParser(optparse.OptionParser):
@@ -110,6 +114,7 @@ def parse_args(args=None):
     """
     options, args = parser.parse_args(args)
     flags.__dict__.update(options.__dict__)
+    on_args_parsed(args, flags)
     return args
 
 

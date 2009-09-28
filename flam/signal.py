@@ -21,8 +21,8 @@ class Error(Error):
     """Base event exception."""
 
 
-class UnboundTrigger(Error):
-    """A Trigger was not associated with a callback when triggered."""
+class UnboundCallback(Error):
+    """A Callback was not associated with a callback when callbacked."""
 
 
 class Signal(object):
@@ -68,53 +68,60 @@ class Signal(object):
         return iter(self._callbacks)
 
 
-class Trigger(Signal):
-    """A trigger is a :class:`Signal` with exactly one callback.
+class Callback(Signal):
+    """A callback is a :class:`Signal` with exactly one callback.
 
-    Create a new trigger:
+    The semantics of a Callback differ from :class:`Signal`, in that calling it
+    will register a function and calling :meth:`Callback.emit` will trigger the
+    callback.
 
-    >>> application_version = Trigger()
+    Create a new callback:
+
+    >>> application_version = Callback()
 
     Bind it to a callback:
 
-    >>> @application_version.connect
+    >>> @application_version
     ... def get_version():
     ...   return '0.1'
 
-    Then use it as you would a :class:`Signal`:
+    To trigger the callback call the :meth:`Callback.emit` method:
 
-    >>> application_version()
+    >>> application_version.emit()
     '0.1'
 
-    If multiple callbacks are bound to a Trigger, only the last one is called
-    and its result returned:
+    If multiple callables are bound to a Callback, only the last one will be
+    called. Its result will be returned:
 
-    >>> @application_version.connect
+    >>> @application_version
     ... def get_version_2():
     ...   return '0.2'
-    >>> application_version()
+    >>> application_version.emit()
     '0.2'
 
     Callbacks can also be unbound:
 
     >>> application_version.disconnect(get_version_2)
-    >>> application_version()
+    >>> application_version.emit()
     '0.1'
     """
 
     def __init__(self, must_be_bound=True):
-        """Create a new Trigger.
+        """Create a new Callback.
 
         :param must_be_bound: If True, require that a callback be bound to the
-                              Trigger.
+                              Callback.
         """
-        super(Trigger, self).__init__()
+        super(Callback, self).__init__()
         self._must_be_bound = must_be_bound
 
-    def __call__(self, *args, **kwargs):
+    def __call__(self, function):
+        return super(Callback, self).connect(function)
+
+    def emit(self, *args, **kwargs):
         if not self._callbacks:
             if self._must_be_bound:
-                raise UnboundTrigger
+                raise UnboundCallback
             return None
         return self._callbacks[-1](*args, **kwargs)
 

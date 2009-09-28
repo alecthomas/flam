@@ -28,12 +28,12 @@ There are four aspects to authentication in Flam:
 
   3. Verifying a user's password.
 
-      @authenticator.register
+      @authenticator
       def authenticate(username, password):
         ...
 
 The only hook that *must* be implemented by an application requiring
-authentication is @authenticator.register.  A default @authentication_handler
+authentication is @authenticator.  A default @authentication_handler
 will be used that assumes the existence of a "login.html" template, with a
 single "login" form containing a "username" and "password".
 
@@ -48,7 +48,7 @@ eg.
 from genshi.filters import HTMLFormFiller
 
 from flam import validate
-from flam.signal import Trigger
+from flam.signal import Callback
 from flam.web.core import *
 from flam.web.core import view_map
 
@@ -59,7 +59,7 @@ __all__ = [
     ]
 
 
-authenticator = Trigger()
+authenticator = Callback()
 _user_authentication_endpoint = None
 
 
@@ -119,7 +119,7 @@ def login():
 
     # Authenticate the user.
     username = form['username']
-    if not authenticator(username, form['password']):
+    if not authenticator.emit(username, form['password']):
         clear_session_user()
         flash('Invalid credentials.', type=ERROR)
         return html('login.html') | HTMLFormFiller(data=form)

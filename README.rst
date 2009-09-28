@@ -76,42 +76,44 @@ routing path parameters::
 
 An example::
 
-    from flam.web import *
-    from flam.auth import *
+    from flam.app import run
+    from flam.web.core import expose, html, json, run_server
+    from flam.web.auth import authenticator, authenticate
+
+
+    # Our list of users!
+    users = {'alec': 'password', 'bob': 's3cr3t'}
 
     # Define an authenticator
-
     @authenticator
+    def authenticate_user(username, password):
+        return users.get(username, -1) == password
 
 
     # Specify path for a handler
     @expose('/')
+    @authenticate
     def index():
         return html('index.html')
 
+
     # If a path is not provided, the name of the function is used (/home)
     @expose
+    @authenticate
     def home():
         return html('home.html')
 
-    @expose
-    def login():
-        form = request.form
-        if not form:
-            return html('login.html')
 
-        username = form['username']
-        password = form['password']
-        if our_authentication(username, password):
-            request.session['username'] = username
-        else:
-            flash('Authentication failed.', type=ERROR)
-            return html('login.html') | HTMLFormFiller(data=form)
-        flash('Welcome!')
-        return redirect(href.home())
-
+    # Define an API function to return a list of users.
     @expose('/api/users')
+    @authenticate
     def api_users():
-        return json(our_user_list())
+        return json(list(users))
 
-    run_server()
+
+    def main(args):
+        run_server()
+
+
+    if __name__ == '__main__':
+        run(main)

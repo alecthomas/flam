@@ -144,6 +144,9 @@ class Application(object):
                 session['flash_message'] = dict(flash_message)
 
             if session.should_save:
+                # TODO This is dying with:
+                #   AttributeError: 'list' object has no attribute 'set_cookie'
+                # when a non-Response object is returned (eg. a list).
                 session_store.save(session)
                 response.set_cookie(
                     self.cookie_name, session.sid,

@@ -12,7 +12,7 @@ from __future__ import absolute_import
 
 import logging
 
-from flam.flags import flag, flags, on_args_parsed
+from flam.flags import define_flag, on_args_parsed
 from flam.app import on_application_init
 from flam.signal import Signal
 
@@ -28,9 +28,11 @@ def _set_log_level(option, opt_str, value, parser):
     level = getattr(logging, value.upper(), 'WARN')
     on_log_level_change(level)
 
-flag('--log-level', type=str, action='callback', callback=_set_log_level,
-     help='set log level to debug, info, warning, error or fatal [%default]',
-           metavar='LEVEL', default='warning')
+define_flag('--log-level', type=str, action='callback',
+            callback=_set_log_level,
+            help='set log level to debug, info, warning, error or fatal '
+                 '[%default]',
+            metavar='LEVEL', default='warning')
 
 
 @on_log_level_change.connect

@@ -11,8 +11,6 @@
 from __future__ import with_statement
 
 import optparse
-import os
-import sys
 from tempfile import NamedTemporaryFile
 
 from flam import flags
@@ -48,19 +46,19 @@ def test_config_from_file():
 
 
 def test_global_flag_add():
-    flags.flag('--test', type=int, default=9)
+    flags.define_flag('--test', type=int, default=9)
     assert '--test' in _parser_options(flags.parser)
 
 
 def test_global_flag_parse():
-    flags.flag('--test', type=int, default=9)
+    flags.define_flag('--test', type=int, default=9)
     options, args = flags.parser.parse_args(['moo', '--test=1', 'bar'])
     assert options.__dict__ == {'test': 1, 'config': None}
     assert args == ['moo', 'bar']
 
 
 def test_global_flags_parse_args():
-    flags.flag('--test', type=int, default=9)
+    flags.define_flag('--test', type=int, default=9)
     args = flags.parse_args(['moo', '--test=1', 'bar'])
     assert args == ['moo', 'bar'], args
     assert flags.flags.__dict__ == {'test': 1, 'config': None}

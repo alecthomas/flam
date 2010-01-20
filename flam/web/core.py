@@ -32,8 +32,7 @@ from werkzeug.contrib.sessions import FilesystemSessionStore, generate_key
 import genshi
 import simplejson
 
-from flam import validate
-from flam.flags import flag, flags
+from flam.flags import define_flag, flags
 from flam.logging import log, console, on_log_level_change
 from flam.signal import Signal
 
@@ -47,12 +46,12 @@ __all__ = [
     ]
 
 
-flag('--port', type='int', default=0xdead,
-     help='specify port to bind HTTP server to [%default]')
-flag('--host', default='localhost',
-     help='address to bind HTTP server to [%default]')
-flag('--debug', action='store_true', default=False,
-     help='enable debug mode')
+define_flag('--port', type='int', default=0xdead,
+            help='specify port to bind HTTP server to [%default]')
+define_flag('--host', default='localhost',
+            help='address to bind HTTP server to [%default]')
+define_flag('--debug', action='store_true', default=False,
+            help='enable debug mode')
 
 
 local = Local()

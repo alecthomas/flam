@@ -17,7 +17,7 @@ import StringIO
 import time
 import urllib
 import random
-import time
+import subprocess
 import weakref
 
 
@@ -315,6 +315,19 @@ def random_sleep(a,b):
     """
     delay = random.uniform(a, b)
     time.sleep(delay)
+
+
+def execute(command, stdin=None):
+    """Execute a command.
+
+    :param command: Command to execute, as a list of args.
+    :param stdin: Optional stdin stream.
+    :returns: Tuple of (returncode, stdout, stderr)
+    """
+    process = subprocess.Popen(command, stdout=subprocess.PIPE,
+                               stderr=subprocess.PIPE, stdin=stdin)
+    stdout, stderr = process.communicate()
+    return process.returncode, stdout, stderr
 
 
 if __name__ == '__main__':

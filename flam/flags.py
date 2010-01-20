@@ -32,7 +32,7 @@ import optparse
 from flam.signal import Signal
 
 
-__all__ = ['flag', 'flags', 'parse_args', 'on_args_parsed']
+__all__ = ['define_flag', 'flags', 'parse_args', 'on_args_parsed']
 
 
 on_args_parsed = Signal()
@@ -118,7 +118,7 @@ def parse_args(args=None):
     return args
 
 
-def flag(*args, **kwargs):
+def define_flag(*args, **kwargs):
     """Define a flag.
 
     This has the same semantics as :meth:`FlagParser.add_option`.

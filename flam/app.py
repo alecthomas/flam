@@ -17,10 +17,20 @@ from flam import flags
 from flam.signal import Signal
 
 
-__all__ = ['run', 'on_application_init']
+__all__ = ['init', 'run', 'on_application_init']
 
 
 on_application_init = Signal()
+
+
+def init(args=None, usage=None, version=None):
+    """Initialise the application."""
+    on_application_init()
+    if version:
+        flags.parser.set_version(version)
+    if usage:
+        flags.parser.set_usage(usage)
+    return flags.parse_args(args)
 
 
 def run(main, args=None, usage=None, version=None):
@@ -34,18 +44,14 @@ def run(main, args=None, usage=None, version=None):
     >>> run(main, ['hello', 'world'])
     ['hello', 'world']
 
+    :param main: Main function to call, with the signature main(args).
     :param args: Command-line arguments. Will default to sys.argv[1:].
     :param usage: A usage string, displayed when --help is passed. If not
                   provided, the docstring from main will be used.
     :param version: The version of the application. If provided, adds a
                     --version flag.
     """
-    on_application_init()
-    if version:
-        flags.parser.set_version(version)
-    if usage:
-        flags.parser.set_usage(usage)
-    else:
-        flags.parser.set_usage(inspect.getdoc(main))
-    args = flags.parse_args(args)
+    if usage is None:
+        usage = inspect.getdoc(main)
+    args = init(args, usage, version)
     main(args)

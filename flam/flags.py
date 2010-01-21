@@ -32,7 +32,7 @@ import optparse
 from flam.signal import Signal
 
 
-__all__ = ['define_flag', 'flags', 'parse_args', 'on_args_parsed']
+__all__ = ['Flag', 'define_flag', 'flags', 'parse_args', 'on_args_parsed']
 
 
 on_args_parsed = Signal()
@@ -105,6 +105,17 @@ class FlagParser(optparse.OptionParser):
         finally:
             if close:
                 file.close()
+
+
+class Flag(object):
+    """A convenience property for defining and accessing flags."""
+
+    def __init__(self, *args, **kwargs):
+        self._option = define_flag(*args, **kwargs)
+
+    def __get__(self, instance, owner):
+        return getattr(flags, self._option.dest)
+
 
 def parse_args(args=None):
     """Parse command-line arguments into the global :data:`flags` object.

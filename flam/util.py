@@ -325,7 +325,8 @@ def execute(command, stdin=None):
     :returns: Tuple of (returncode, stdout, stderr)
     """
     process = subprocess.Popen(command, stdout=subprocess.PIPE,
-                               stderr=subprocess.PIPE, stdin=stdin)
+                               stderr=subprocess.PIPE, stdin=stdin,
+                               close_fds=True)
     stdout, stderr = process.communicate()
     return process.returncode, stdout, stderr
 

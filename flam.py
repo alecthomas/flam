@@ -29,7 +29,7 @@ sys.argv[1:].
 :data:`flags` is an optparse.Values() object that will contain the parsed flag
 values.
 
-The --config=FILE flag can be used to load flag values from a file consisting
+The --flags=FILE flag can be used to load flag values from a file consisting
 of "key = value" lines. Both empty lines and those beginning with # are ignored.
 """
 
@@ -173,7 +173,7 @@ class FlagParser(optparse.OptionParser):
 
     >>> parser = FlagParser()
     >>> [o.get_opt_string() for o in parser.option_list]
-    ['--help', '--config']
+    ['--help', '--flags']
 
     Flags can be loaded from a file:
 
@@ -191,7 +191,7 @@ class FlagParser(optparse.OptionParser):
     def __init__(self, *args, **kwargs):
         kwargs.setdefault('conflict_handler', 'resolve')
         optparse.OptionParser.__init__(self, *args, **kwargs)
-        self.add_option('--config', metavar='FILE', type=str,
+        self.add_option('--flags', metavar='FILE', type=str,
                         action='callback', help='load flags from FILE',
                         callback=self._flag_loader, default=None)
 

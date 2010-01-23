@@ -13,24 +13,6 @@ or trick. 2. a falsehood; lie. –verb (used with object), verb (used without
 object) 3. to deceive; delude; cheat.
 
 Flam - A minimalist Python application framework
-================================================
-
-Global flags registry
----------------------
-
-Register new flags with :func:`flag`. This is an alias for
-optparse.OptionParser.add_option().
-
-The underlying optparse.OptionParser object is exposed as :data:`flag_parser`.
-
-Call :func:`parse_args` to parse command-line arguments. Defaults to parsing
-sys.argv[1:].
-
-:data:`flags` is an optparse.Values() object that will contain the parsed flag
-values.
-
-The --flags=FILE flag can be used to load flag values from a file consisting
-of "key = value" lines. Both empty lines and those beginning with # are ignored.
 """
 
 

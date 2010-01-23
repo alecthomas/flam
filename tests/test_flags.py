@@ -10,6 +10,8 @@
 
 from __future__ import with_statement
 
+from nose.tools import assert_equal, assert_true
+
 import optparse
 from tempfile import NamedTemporaryFile
 
@@ -28,7 +30,7 @@ def _parser_options(parser):
 
 def test_config_option():
     parser = flam.FlagParser()
-    assert _parser_options(parser) == ['--help', '--config']
+    assert_equal(_parser_options(parser), ['--help', '--flags', '--log_level'])
 
 
 def test_config_from_file():
@@ -41,31 +43,32 @@ def test_config_from_file():
         test = 99
         """
         fd.flush()
-        options, _ = parser.parse_args(['--config', fd.name])
-        assert options.test == 99
+        options, _ = parser.parse_args(['--flags', fd.name])
+        assert_equal(options.test, 99)
 
 
 def test_global_flag_add():
     flam.define_flag('--test', type=int, default=9)
-    assert '--test' in _parser_options(flam.flag_parser)
+    assert_true('--test' in _parser_options(flam.flag_parser))
 
 
 def test_global_flag_parse():
     flam.define_flag('--test', type=int, default=9)
     options, args = flam.flag_parser.parse_args(['moo', '--test=1', 'bar'])
-    assert options.__dict__ == {'test': 1, 'config': None}
-    assert args == ['moo', 'bar']
+    assert_equal(options.__dict__,
+                 {'test': 1, 'flags': None, 'log_level': 'warning'})
+    assert_equal(args, ['moo', 'bar'])
 
 
 def test_global_flags_parse_args():
     flam.define_flag('--test', type=int, default=9)
     args = flam.parse_args(['moo', '--test=1', 'bar'])
-    assert args == ['moo', 'bar'], args
-    assert flam.flags.__dict__ == {'test': 1, 'config': None}
+    assert_true(args == ['moo', 'bar'], args)
+    assert_true(flam.flags.__dict__, {'test': 1, 'flags': None})
 
 
 def test_set_version_adds_flag():
     parser = flam.FlagParser()
     parser.set_version('0.1')
-    assert _parser_options(parser) == ['--help', '--config', '--version']
-    assert parser.version == '0.1'
+    assert_true(_parser_options(parser), ['--help', '--flags', '--version'])
+    assert_true(parser.version, '0.1')

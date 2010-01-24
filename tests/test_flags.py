@@ -30,7 +30,7 @@ def _parser_options(parser):
 
 def test_config_option():
     parser = flam.FlagParser()
-    assert_equal(_parser_options(parser), ['--help', '--flags', '--log_level'])
+    assert_equal(_parser_options(parser), ['--help', '--flags', '--logging'])
 
 
 def test_config_from_file():
@@ -56,7 +56,7 @@ def test_global_flag_parse():
     flam.define_flag('--test', type=int, default=9)
     options, args = flam.flag_parser.parse_args(['moo', '--test=1', 'bar'])
     assert_equal(options.__dict__,
-                 {'test': 1, 'flags': None, 'log_level': 'warning'})
+                 {'test': 1, 'flags': None, 'logging': 'warning'})
     assert_equal(args, ['moo', 'bar'])
 
 

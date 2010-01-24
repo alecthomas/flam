@@ -18,8 +18,10 @@ Flam - A minimalist Python application framework
 
 from __future__ import with_statement
 
+import inspect
 import optparse
 import logging
+import subprocess
 
 
 # Try and determine the version of flam according to pkg_resources.
@@ -34,8 +36,8 @@ except ImportError:
 
 
 __author__ = 'Alec Thomas <alec@swapoff.org>'
-__all__ = ['Error', 'Flag', 'define_flag', 'flags', 'parse_args', 'init',
-           'run', 'log']
+__all__ = ['Error', 'Flag', 'define_flag', 'flags', 'parse_args',
+           'parse_args_from_file', 'init', 'run', 'log']
 
 
 class Error(Exception):
@@ -47,7 +49,7 @@ class FlagParser(optparse.OptionParser):
 
     >>> parser = FlagParser()
     >>> [o.get_opt_string() for o in parser.option_list]
-    ['--help', '--flags', '--log_level']
+    ['--help', '--flags', '--logging']
 
     Flags can be loaded from a file:
 
@@ -68,13 +70,13 @@ class FlagParser(optparse.OptionParser):
         self.add_option('--flags', metavar='FILE', type=str,
                         action='callback', help='load flags from FILE',
                         callback=self._flag_loader, default=None)
-        self.add_option('--log_level', type=str, action='callback',
-                        callback=self._set_log_level_flag,
+        self.add_option('--logging', type=str, action='callback',
+                        callback=self._set_logging_flag,
                         help='set log level to debug, info, warning, error '
                              'or fatal [%default]',
                         metavar='LEVEL', default='warning')
 
-    def _set_log_level_flag(self, option, opt_str, value, parser):
+    def _set_logging_flag(self, option, opt_str, value, parser):
         """Flag callback for setting the log level."""
         level = getattr(logging, value.upper(), 'WARN')
         log.setLevel(level)
@@ -175,17 +177,17 @@ def init(args=None, usage=None, version=None):
     """
     log.setLevel(logging.WARN)
     if version:
-        flags.parser.set_version(version)
+        flag_parser.set_version(version)
     if usage:
-        flags.parser.set_usage(usage)
+        flag_parser.set_usage(usage)
     return flag_parser.parse_args(args)
 
 
 def run(main, args=None, usage=None, version=None):
     """Initialise and run the application.
 
-    This function parses and updates the global flags object, and passes
-    any remaining arguments through to the main function.
+    This function parses and updates the global flags object, configures
+    logging, and passes any remaining arguments through to the main function.
 
     >>> def main(args):
     ...   print args
@@ -200,18 +202,32 @@ def run(main, args=None, usage=None, version=None):
                     --version flag.
     """
     if usage is None:
-        usage = main.__doc__
+        usage = inspect.getdoc(main)
     options, args = init(args, usage, version)
     main(args)
 
 
-_formatter = logging.Formatter(
+def execute(command, **kwargs):
+    """Execute a command.
+
+    :param command: Command to execute, as a list of args.
+    :param kwargs: Extra keyword args to pass to subprocess.Popen.
+    :returns: Tuple of (returncode, stdout, stderr)
+    """
+    kwargs.setdefault('close_fds', True)
+    process = subprocess.Popen(command, stdout=subprocess.PIPE,
+                               stderr=subprocess.PIPE)
+    stdout, stderr = process.communicate()
+    return process.returncode, stdout, stderr
+
+
+log_formatter = logging.Formatter(
     '%(asctime)s %(name)-12s %(levelname)-8s %(message)s',
     '%Y-%m-%d %H:%M:%S',
     )
 console = logging.StreamHandler()
 console.setLevel(logging.DEBUG)
-console.setFormatter(_formatter)
+console.setFormatter(log_formatter)
 
 log = logging.getLogger('flam')
 log.setLevel(logging.FATAL)

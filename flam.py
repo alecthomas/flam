@@ -18,7 +18,6 @@ Flam - A minimalist Python application framework
 
 from __future__ import with_statement
 
-from functools import wraps
 import inspect
 import optparse
 import logging
@@ -38,9 +37,11 @@ except ImportError:
 
 
 __author__ = 'Alec Thomas <alec@swapoff.org>'
-__all__ = ['Error', 'Flag', 'define_flag', 'flags', 'parse_args',
-           'parse_args_from_file', 'init', 'run', 'command', 'log',
-           'fatal', 'dispatch_command', 'command']
+__all__ = [
+    'Error', 'Flag', 'define_flag', 'flags', 'parse_args',
+    'parse_flags_from_file', 'write_flags_to_file', 'init', 'run', 'command',
+    'log', 'fatal', 'dispatch_command', 'command',
+]
 
 
 class Error(Exception):
@@ -73,8 +74,8 @@ class FlagParser(optparse.OptionParser):
 
     def __init__(self, *args, **kwargs):
         kwargs.setdefault('conflict_handler', 'resolve')
-        kwargs.setdefault('usage', '%prog [<options>] <command> ...')
         optparse.OptionParser.__init__(self, *args, **kwargs)
+        self.set_usage('%prog [<flags>] <command> ...')
         self.add_option('--flags', metavar='FILE', type=str,
                         action='callback', help='load flags from FILE',
                         callback=self._flag_loader, default=None)
@@ -87,7 +88,7 @@ class FlagParser(optparse.OptionParser):
 
     def _set_logging_flag(self, option, opt_str, value, parser):
         """Flag callback for setting the log level."""
-        level = getattr(logging, value.upper(), 'WARN')
+        level = getattr(logging, value.upper(), 'ERROR')
         log.setLevel(level)
 
     def set_epilog(self, epilog):
@@ -214,13 +215,18 @@ class FlagParser(optparse.OptionParser):
         return matched_command(*command_args)
 
 
-    def parse_args_from_file(self, filename):
+    def parse_flags_from_file(self, filename):
         """Parse command line flags from a file.
 
         The format of the file is one flag per line, key = value.
         """
         args = self._load_flags(filename)
         return self.parse_args(args)
+
+    def write_flags_to_file(self, filename, flags):
+        with open(filename, 'wt') as fd:
+            for key, value in flags.__dict__.iteritems():
+                fd.write('%s = %s\n' % (key, value))
 
     # Internal methods
     def _flag_loader(self, option, opt_str, value, parser):
@@ -269,11 +275,16 @@ def parse_args(args=None):
     return args
 
 
-def parse_args_from_file(filename):
+def parse_flags_from_file(filename):
     """Parse command-line arguments from a file."""
-    options, args = flag_parser.parse_args_from_file(filename)
+    options, args = flag_parser.parse_flags_from_file(filename)
     flags.__dict__.update(options.__dict__)
     return args
+
+
+def write_flags_to_file(filename):
+    """Write global flags to a file."""
+    flag_parser.write_flags_to_file(filename, flags)
 
 
 def define_flag(*args, **kwargs):
@@ -298,7 +309,6 @@ def init(args=None, usage=None, version=None, epilog=None):
 
     :returns: Tuple of (options, args)
     """
-    log.setLevel(logging.WARN)
     if version:
         flag_parser.set_version(version)
     if usage:
@@ -372,7 +382,7 @@ console.setLevel(logging.DEBUG)
 console.setFormatter(log_formatter)
 
 log = logging.getLogger('flam')
-log.setLevel(logging.FATAL)
+log.setLevel(logging.ERROR)
 log.addHandler(console)
 
 flag_parser = FlagParser()

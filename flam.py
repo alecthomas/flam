@@ -18,10 +18,12 @@ Flam - A minimalist Python application framework
 
 from __future__ import with_statement
 
+from functools import wraps
 import inspect
 import optparse
 import logging
 import subprocess
+import sys
 
 
 # Try and determine the version of flam according to pkg_resources.
@@ -37,11 +39,16 @@ except ImportError:
 
 __author__ = 'Alec Thomas <alec@swapoff.org>'
 __all__ = ['Error', 'Flag', 'define_flag', 'flags', 'parse_args',
-           'parse_args_from_file', 'init', 'run', 'log']
+           'parse_args_from_file', 'init', 'run', 'command', 'log',
+           'fatal', 'dispatch_command', 'command']
 
 
 class Error(Exception):
     """Base Flam exception."""
+
+
+class CommandError(Error):
+    """An error in the top-level command parsing code."""
 
 
 class FlagParser(optparse.OptionParser):
@@ -66,6 +73,7 @@ class FlagParser(optparse.OptionParser):
 
     def __init__(self, *args, **kwargs):
         kwargs.setdefault('conflict_handler', 'resolve')
+        kwargs.setdefault('usage', '%prog [<options>] <command> ...')
         optparse.OptionParser.__init__(self, *args, **kwargs)
         self.add_option('--flags', metavar='FILE', type=str,
                         action='callback', help='load flags from FILE',
@@ -75,11 +83,16 @@ class FlagParser(optparse.OptionParser):
                         help='set log level to debug, info, warning, error '
                              'or fatal [%default]',
                         metavar='LEVEL', default='warning')
+        self._commands = {}
 
     def _set_logging_flag(self, option, opt_str, value, parser):
         """Flag callback for setting the log level."""
         level = getattr(logging, value.upper(), 'WARN')
         log.setLevel(level)
+
+    def set_epilog(self, epilog):
+        """Set help epilog text."""
+        self.epilog = epilog
 
     def set_version(self, version):
         """Set the application version.
@@ -95,6 +108,111 @@ class FlagParser(optparse.OptionParser):
         """
         self.version = version
         self._add_version_option()
+
+    def register_command(self, function):
+        """Register a command."""
+        commands = tuple(function.__name__.split('_'))
+        self._commands[commands] = function
+        return function
+
+    def format_help(self, formatter=None):
+        if formatter is None:
+            formatter = self.formatter
+        result = []
+        if self.usage:
+            result.append(self.get_usage() + '\n')
+        if self.description:
+            result.append(self.format_description(formatter) + '\n')
+        if self._commands:
+            result.append(self.format_commands(formatter))
+        result.append(self.format_option_help(formatter))
+        result.append(self.format_epilog(formatter))
+        return ''.join(result)
+
+    def format_commands(self, formatter=None):
+        """Format commands for help."""
+        result = []
+        result.append('Commands:')
+        for command_args, command in sorted(self._commands.iteritems()):
+            help = inspect.getdoc(command)
+            argspec = inspect.getargspec(command)
+            defaults_len = len(argspec.defaults or [])
+            args = ['<%s>' % arg for arg in argspec.args]
+            if defaults_len:
+                arg_spec = ' '.join(args[:-defaults_len])
+                optional_spec = ' '.join(args[-defaults_len:])
+            else:
+                arg_spec = ' '.join(args)
+                optional_spec = ''
+            if argspec.varargs:
+                optional_spec += ' <' + argspec.varargs + '> ...'
+            if optional_spec:
+                optional_spec = '[' + optional_spec.strip() + ']'
+            command_args_help = ' '.join(command_args)
+            result.append('  ' + ' '.join([command_args_help, arg_spec,
+                                          optional_spec]))
+            if help:
+                result.extend('    ' + line for line in help.splitlines())
+            result.append('')
+        result.append('')
+        return '\n'.join(result)
+
+    def dispatch_command(self, args):
+        """Dispatch to command functions registered with @command.
+
+        :param args: Command-line argument list.
+        :returns: Tuple of (function, args)
+        """
+        # If only "help" is registered, assume we don't want commands
+        if len(self._commands) == 1:
+            return
+
+        if not args:
+            raise CommandError('no command provided, try "help"')
+
+        # Find longest matching command
+        matched_command = None
+        longest_match = 0
+        for command_args, command in sorted(self._commands.iteritems()):
+            command_length = len(command_args)
+            if args[:command_length] == list(command_args) and \
+                    command_length > longest_match:
+                matched_command = command
+                longest_match = command_length
+
+        if not matched_command:
+            raise CommandError('no command found matching %r.' % ' '.join(args))
+
+        # Attempt to move arguments into command_args and command_kwargs from
+        # args.
+        command_description = ' '.join(args[:longest_match])
+        args = args[longest_match:]
+        command_args = []
+
+        argspec = inspect.getargspec(matched_command)
+
+        if argspec.keywords:
+            raise CommandError('keyword wildcards are not supported')
+
+        # Move positional arguments required by function spec
+        if argspec.args:
+            func_arg_length = len(argspec.args)
+            if len(args) + len(argspec.defaults or []) < func_arg_length:
+                raise CommandError('insufficient arguments to %r'
+                                % command_description)
+            command_args.extend(args[:func_arg_length])
+            args = args[func_arg_length:]
+
+        if argspec.varargs:
+            command_args.extend(args)
+            args = []
+
+        if args:
+            raise CommandError('too many arguments provided to %r' %
+                            command_description)
+
+        return matched_command(*command_args)
+
 
     def parse_args_from_file(self, filename):
         """Parse command line flags from a file.
@@ -170,7 +288,12 @@ def define_flag(*args, **kwargs):
     return flag_parser.add_option(*args, **kwargs)
 
 
-def init(args=None, usage=None, version=None):
+def dispatch_command(args):
+    """Dispatch to a command registered with @command."""
+    flag_parser.dispatch_command(args)
+
+
+def init(args=None, usage=None, version=None, epilog=None):
     """Initialise the application.
 
     :returns: Tuple of (options, args)
@@ -180,10 +303,12 @@ def init(args=None, usage=None, version=None):
         flag_parser.set_version(version)
     if usage:
         flag_parser.set_usage(usage)
-    return flag_parser.parse_args(args)
+    if epilog:
+        flag_parser.set_epilog(epilog)
+    return parse_args(args)
 
 
-def run(main, args=None, usage=None, version=None):
+def run(main=None, args=None, usage=None, version=None, epilog=None):
     """Initialise and run the application.
 
     This function parses and updates the global flags object, configures
@@ -194,17 +319,33 @@ def run(main, args=None, usage=None, version=None):
     >>> run(main, ['hello', 'world'])
     ['hello', 'world']
 
-    :param main: Main function to call, with the signature main(args).
+    :param main: Main function to call, with the signature main(args). After
+                 execution of main(), any commands registered with @command
+                 will be dispatched. This allows main() to be used as
+                 initialisation code.
     :param args: Command-line arguments. Will default to sys.argv[1:].
     :param usage: A usage string, displayed when --help is passed. If not
                   provided, the docstring from main will be used.
     :param version: The version of the application. If provided, adds a
                     --version flag.
+    :raises Error: If main is not provided and no commands are defined with
+                   :func:`command`.
     """
     if usage is None:
         usage = inspect.getdoc(main)
-    options, args = init(args, usage, version)
-    main(args)
+    args = init(args, usage, version, epilog)
+    if main:
+        main(args)
+    try:
+        dispatch_command(args)
+    except CommandError, e:
+        fatal(e)
+
+
+def fatal(*args):
+    """Print an error and terminate with a non-zero status."""
+    print >> sys.stderr, 'fatal:', ' '.join(map(str, args))
+    sys.exit(1)
 
 
 def execute(command, **kwargs):
@@ -221,6 +362,7 @@ def execute(command, **kwargs):
     return process.returncode, stdout, stderr
 
 
+# Command dispatching
 log_formatter = logging.Formatter(
     '%(asctime)s %(name)-12s %(levelname)-8s %(message)s',
     '%Y-%m-%d %H:%M:%S',
@@ -235,6 +377,13 @@ log.addHandler(console)
 
 flag_parser = FlagParser()
 flags = optparse.Values()
+command = flag_parser.register_command
+
+
+@command
+def help(command=None):
+    """Display help on available commands."""
+    sys.stdout.write(flag_parser.format_help())
 
 
 if __name__ == '__main__':

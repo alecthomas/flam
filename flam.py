@@ -20,9 +20,11 @@ from __future__ import with_statement
 
 import inspect
 import optparse
+import os
 import logging
 import subprocess
 import sys
+import weakref
 
 
 # Try and determine the version of flam according to pkg_resources.
@@ -40,7 +42,8 @@ __author__ = 'Alec Thomas <alec@swapoff.org>'
 __all__ = [
     'Error', 'Flag', 'define_flag', 'flags', 'parse_args',
     'parse_flags_from_file', 'write_flags_to_file', 'init', 'run', 'command',
-    'log', 'fatal', 'dispatch_command', 'command',
+    'log', 'fatal', 'dispatch_command', 'command', 'cached_property',
+    'WeakList',
 ]
 
 
@@ -50,6 +53,17 @@ class Error(Exception):
 
 class CommandError(Error):
     """An error in the top-level command parsing code."""
+
+
+def _check_list_option(option, opt, value):
+    return [i.strip() for i in value.split(',')]
+
+
+class FlagOption(optparse.Option):
+    """Custom Option types."""
+    TYPES = optparse.Option.TYPES + ("list",)
+    TYPE_CHECKER = optparse.Option.TYPE_CHECKER.copy()
+    TYPE_CHECKER['list'] = _check_list_option
 
 
 class FlagParser(optparse.OptionParser):
@@ -74,6 +88,7 @@ class FlagParser(optparse.OptionParser):
 
     def __init__(self, *args, **kwargs):
         kwargs.setdefault('conflict_handler', 'resolve')
+        kwargs.setdefault('option_class', FlagOption)
         optparse.OptionParser.__init__(self, *args, **kwargs)
         self.set_usage('%prog [<flags>] <command> ...')
         self.add_option('--flags', metavar='FILE', type=str,
@@ -169,7 +184,7 @@ class FlagParser(optparse.OptionParser):
             return
 
         if not args:
-            raise CommandError('no command provided, try "help"')
+            raise CommandError('command not provided, try "help"')
 
         # Find longest matching command
         matched_command = None
@@ -182,24 +197,25 @@ class FlagParser(optparse.OptionParser):
                 longest_match = command_length
 
         if not matched_command:
-            raise CommandError('no command found matching %r.' % ' '.join(args))
+            raise CommandError('no command found matching %r, try "help"'
+                               % ' '.join(map(str, args)))
 
         # Attempt to move arguments into command_args and command_kwargs from
         # args.
-        command_description = ' '.join(args[:longest_match])
+        command_description = ' '.join(map(str, args[:longest_match]))
         args = args[longest_match:]
         command_args = []
 
         argspec = inspect.getargspec(matched_command)
 
         if argspec.keywords:
-            raise CommandError('keyword wildcards are not supported')
+            raise ValueError('keyword wildcards are not supported')
 
         # Move positional arguments required by function spec
         if argspec.args:
             func_arg_length = len(argspec.args)
             if len(args) + len(argspec.defaults or []) < func_arg_length:
-                raise CommandError('insufficient arguments to %r'
+                raise CommandError('insufficient arguments to %r, try "help"'
                                 % command_description)
             command_args.extend(args[:func_arg_length])
             args = args[func_arg_length:]
@@ -209,23 +225,25 @@ class FlagParser(optparse.OptionParser):
             args = []
 
         if args:
-            raise CommandError('too many arguments provided to %r' %
+            raise CommandError('too many arguments provided to %r, try "help"' %
                             command_description)
 
         return matched_command(*command_args)
 
 
-    def parse_flags_from_file(self, filename):
+    def parse_flags_from_file(self, filename, values=None):
         """Parse command line flags from a file.
 
         The format of the file is one flag per line, key = value.
+
+        :param values: Values object to update.
         """
         args = self._load_flags(filename)
-        return self.parse_args(args)
+        return self.parse_args(args, values=values)
 
     def write_flags_to_file(self, filename, flags):
         with open(filename, 'wt') as fd:
-            for key, value in flags.__dict__.iteritems():
+            for key, value in vars(flags).iteritems():
                 fd.write('%s = %s\n' % (key, value))
 
     # Internal methods
@@ -264,21 +282,88 @@ class Flag(object):
         return getattr(flags, self._option.dest)
 
 
+class WeakList(list):
+    """A list with weak references to its values.
+
+    Weak references can not be created to builtin types, so we need to create
+    some trivial subclasses:
+
+    >>> class mylist(list): pass
+    >>> class mydict(dict): pass
+    >>> a = mylist([1, 2])
+    >>> b = mydict({1: 2})
+
+    Add the references to our WeakList:
+
+    >>> things = WeakList()
+    >>> things.append(a)
+    >>> things.insert(0, b)
+    >>> things
+    [{1: 2}, [1, 2]]
+
+    Then delete the original references, dropping the weak references:
+
+    >>> del a
+    >>> things
+    [{1: 2}]
+    >>> del b
+    >>> things
+    []
+    """
+
+    def append(self, value):
+        ref = weakref.proxy(value, self._clear_reference)
+        super(WeakList, self).append(ref)
+
+    def insert(self, index, value):
+        ref = weakref.proxy(value, self._clear_reference)
+        super(WeakList, self).insert(index, ref)
+
+    def extend(self, sequence):
+        for value in sequence:
+            self.append(value)
+
+    def _clear_reference(self, ref):
+        for i, value in enumerate(self):
+            if value is ref:
+                del self[i]
+                return
+        raise ValueError('could not find weakref %r to remove' % ref)
+
+    def __repr__(self):
+        return '[%s]' % ', '.join(str(i) for i in self)
+
+
+class cached_property(object):
+    """A property that caches the result of its implementation function."""
+
+    def __init__(self, function):
+        self.function = function
+        self.__name__ = function.__name__
+        self.__doc__ = function.__doc__
+
+    def __get__(self, instance, owner=None):
+        if instance is None:
+            return self
+        value = self.function(instance)
+        setattr(instance, self.__name__, value)
+        return value
+
+
 def parse_args(args=None):
     """Parse command-line arguments into the global :data:`flags` object.
 
     :param args: Command-line args, not including argv[0]. Defaults to sys.argv[1:]
     :returns: Positional arguments from :data:`args`.
     """
-    options, args = flag_parser.parse_args(args)
-    flags.__dict__.update(options.__dict__)
+    _, args = flag_parser.parse_args(args, values=flags)
     return args
 
 
 def parse_flags_from_file(filename):
     """Parse command-line arguments from a file."""
-    options, args = flag_parser.parse_flags_from_file(filename)
-    flags.__dict__.update(options.__dict__)
+    options, args = flag_parser.parse_flags_from_file(filename, values=flags)
+    vars(flags).update(vars(options))
     return args
 
 
@@ -307,7 +392,7 @@ def dispatch_command(args):
 def init(args=None, usage=None, version=None, epilog=None):
     """Initialise the application.
 
-    :returns: Tuple of (options, args)
+    :returns: Remaining command-line arguments after flag parsing.
     """
     if version:
         flag_parser.set_version(version)
@@ -315,7 +400,9 @@ def init(args=None, usage=None, version=None, epilog=None):
         flag_parser.set_usage(usage)
     if epilog:
         flag_parser.set_epilog(epilog)
-    return parse_args(args)
+    options, args = flag_parser.parse_args(args)
+    vars(flags).update(vars(options))
+    return args
 
 
 def run(main=None, args=None, usage=None, version=None, epilog=None):
@@ -354,7 +441,8 @@ def run(main=None, args=None, usage=None, version=None, epilog=None):
 
 def fatal(*args):
     """Print an error and terminate with a non-zero status."""
-    print >> sys.stderr, 'fatal:', ' '.join(map(str, args))
+    program = os.path.basename(sys.argv[0])
+    print >> sys.stderr, '%s: fatal: %s' % (program, ' '.join(map(str, args)))
     sys.exit(1)
 
 

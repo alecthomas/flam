@@ -60,14 +60,17 @@ def _check_list_option(option, opt, value):
 
 
 class FlagOption(optparse.Option):
-    """Custom Option types."""
+    """Custom FlagParser option types.
+
+    Currently supports only list.
+    """
     TYPES = optparse.Option.TYPES + ("list",)
     TYPE_CHECKER = optparse.Option.TYPE_CHECKER.copy()
     TYPE_CHECKER['list'] = _check_list_option
 
 
 class FlagParser(optparse.OptionParser):
-    """An OptionParser that optionally loads flags from a file.
+    """An OptionParser that supports command and can load flags from files.
 
     >>> parser = FlagParser()
     >>> [o.get_opt_string() for o in parser.option_list]
@@ -394,6 +397,7 @@ def init(args=None, usage=None, version=None, epilog=None):
 
     :returns: Remaining command-line arguments after flag parsing.
     """
+    log.setLevel(logging.ERROR)
     if version:
         flag_parser.set_version(version)
     if usage:
@@ -479,9 +483,9 @@ command = flag_parser.register_command
 
 
 @command
-def help(command=None):
+def help():
     """Display help on available commands."""
-    sys.stdout.write(flag_parser.format_help())
+    flag_parser.print_help()
 
 
 if __name__ == '__main__':

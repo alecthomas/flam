@@ -247,7 +247,19 @@ class FlagParser(optparse.OptionParser):
     def write_flags_to_file(self, filename, flags):
         with open(filename, 'wt') as fd:
             for key, value in vars(flags).iteritems():
-                fd.write('%s = %s\n' % (key, value))
+                # TODO(alec) This is not reliable as the key uses the value of
+                # "dest", while we use the flag name.
+                option = self.get_option('--' + key)
+                if value != option.default:
+                    value = self._serialise_option_value(value)
+                    fd.write('%s = %s\n' % (key, value))
+
+    def _serialise_option_value(self, value):
+        # TODO(alec) This is kinda ugly. It'd be better if the
+        # Option object itself supported serialisation.
+        if isinstance(value, (list, tuple)):
+            return ','.join(map(str, value))
+        return str(value)
 
     # Internal methods
     def _flag_loader(self, option, opt_str, value, parser):

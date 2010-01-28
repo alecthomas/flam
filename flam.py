@@ -259,6 +259,8 @@ class FlagParser(optparse.OptionParser):
         # Option object itself supported serialisation.
         if isinstance(value, (list, tuple)):
             return ','.join(map(str, value))
+        elif value is None:
+            return ''
         return str(value)
 
     # Internal methods
@@ -294,7 +296,7 @@ class Flag(object):
         self._option = define_flag(*args, **kwargs)
 
     def __get__(self, instance, owner):
-        return getattr(flags, self._option.dest)
+        return getattr(flags, self._option.dest, self._option.default)
 
 
 class WeakList(list):
@@ -376,10 +378,13 @@ def parse_args(args=None):
 
 
 def parse_flags_from_file(filename):
-    """Parse command-line arguments from a file."""
-    options, args = flag_parser.parse_flags_from_file(filename, values=flags)
-    vars(flags).update(vars(options))
-    return args
+    """Parse command-line arguments from a file.
+
+    :param filename: If not provided, try to use ~/.<application>rc
+    :returns: True if file was loaded, False if not.
+    """
+    flag_parser.parse_flags_from_file(filename, values=flags)
+    return True
 
 
 def write_flags_to_file(filename):
@@ -404,8 +409,10 @@ def dispatch_command(args):
     flag_parser.dispatch_command(args)
 
 
-def init(args=None, usage=None, version=None, epilog=None):
+def init(args=None, usage=None, version=None, epilog=None, config=None):
     """Initialise the application.
+
+    See :func:`run` for further documentation.
 
     :returns: Remaining command-line arguments after flag parsing.
     """
@@ -416,16 +423,21 @@ def init(args=None, usage=None, version=None, epilog=None):
         flag_parser.set_usage(usage)
     if epilog:
         flag_parser.set_epilog(epilog)
-    options, args = flag_parser.parse_args(args)
-    vars(flags).update(vars(options))
+
+    flags._update_loose(vars(flag_parser.get_default_values()))
+    if config and os.path.exists(config):
+        flag_parser.parse_flags_from_file(config, values=flags)
+    _, args = flag_parser.parse_args(args, values=flags)
     return args
 
 
-def run(main=None, args=None, usage=None, version=None, epilog=None):
+def run(main=None, args=None, usage=None, version=None, epilog=None,
+        config=None):
     """Initialise and run the application.
 
     This function parses and updates the global flags object, configures
-    logging, and passes any remaining arguments through to the main function.
+    logging, and passes any remaining arguments through to the main function. If
+    main() returns a false value
 
     >>> def main(args):
     ...   print args
@@ -435,20 +447,23 @@ def run(main=None, args=None, usage=None, version=None, epilog=None):
     :param main: Main function to call, with the signature main(args). After
                  execution of main(), any commands registered with @command
                  will be dispatched. This allows main() to be used as
-                 initialisation code.
+                 initialisation code. If main() returns True, commands will not
+                 be dispatched.
     :param args: Command-line arguments. Will default to sys.argv[1:].
     :param usage: A usage string, displayed when --help is passed. If not
                   provided, the docstring from main will be used.
     :param version: The version of the application. If provided, adds a
                     --version flag.
+    :param config: Configuration file to load flags from.
     :raises Error: If main is not provided and no commands are defined with
                    :func:`command`.
     """
     if usage is None:
         usage = inspect.getdoc(main)
-    args = init(args, usage, version, epilog)
-    if main:
-        main(args)
+    args = init(args=args, usage=usage, version=version, epilog=epilog,
+                config=config)
+    if main and main(args):
+        return
     try:
         dispatch_command(args)
     except CommandError, e:

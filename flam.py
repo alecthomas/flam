@@ -74,7 +74,7 @@ class FlagParser(optparse.OptionParser):
 
     >>> parser = FlagParser()
     >>> [o.get_opt_string() for o in parser.option_list]
-    ['--help', '--flags', '--logging']
+    ['--help', '--flags']
 
     Flags can be loaded from a file:
 
@@ -97,17 +97,7 @@ class FlagParser(optparse.OptionParser):
         self.add_option('--flags', metavar='FILE', type=str,
                         action='callback', help='load flags from FILE',
                         callback=self._flag_loader, default=None)
-        self.add_option('--logging', type=str, action='callback',
-                        callback=self._set_logging_flag,
-                        help='set log level to debug, info, warning, error '
-                             'or fatal [%default]',
-                        metavar='LEVEL', default='warning')
         self._commands = {}
-
-    def _set_logging_flag(self, option, opt_str, value, parser):
-        """Flag callback for setting the log level."""
-        level = getattr(logging, value.upper(), 'ERROR')
-        log.setLevel(level)
 
     def set_epilog(self, epilog):
         """Set help epilog text."""
@@ -491,6 +481,13 @@ def execute(command, **kwargs):
     return process.returncode, stdout, stderr
 
 
+def _set_logging_flag(option, opt_str, value, parser):
+    """Flag callback for setting the log level."""
+    level = getattr(logging, value.upper(), 'ERROR')
+    log.setLevel(level)
+    flags.logging = value
+
+
 # Command dispatching
 log_formatter = logging.Formatter(
     '%(asctime)s %(name)-12s %(levelname)-8s %(message)s',
@@ -513,6 +510,13 @@ command = flag_parser.register_command
 def help():
     """Display help on available commands."""
     flag_parser.print_help()
+
+
+define_flag('--logging', type=str, action='callback',
+            callback=_set_logging_flag,
+            help='set log level to debug, info, warning, error '
+                 'or fatal [%default]',
+            metavar='LEVEL', default='warning')
 
 
 if __name__ == '__main__':

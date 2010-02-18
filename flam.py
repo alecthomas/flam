@@ -24,7 +24,9 @@ import os
 import logging
 import subprocess
 import sys
+import threading
 import weakref
+from Queue import Queue
 
 
 # Try and determine the version of flam according to pkg_resources.
@@ -40,7 +42,7 @@ except ImportError:
 
 __author__ = 'Alec Thomas <alec@swapoff.org>'
 __all__ = [
-    'Error', 'Flag', 'define_flag', 'flags', 'parse_args',
+    'Error', 'Flag', 'ThreadPool', 'define_flag', 'flags', 'parse_args',
     'parse_flags_from_file', 'write_flags_to_file', 'init', 'run', 'command',
     'log', 'fatal', 'dispatch_command', 'command', 'cached_property',
     'WeakList',
@@ -283,10 +285,60 @@ class Flag(object):
     """A convenience property for defining and accessing flags."""
 
     def __init__(self, *args, **kwargs):
+        """Define a new flag property.
+
+        :param args: Positional arguments to pass to :func:`define_flag`.
+        :param kwargs: Keyword arguments to pass to :func:`define_flag`.
+        """
         self._option = define_flag(*args, **kwargs)
 
     def __get__(self, instance, owner):
         return getattr(flags, self._option.dest, self._option.default)
+
+
+class ThreadPool(object):
+    """A thread pool manager."""
+    
+    def __init__(self, threads=8):
+        """Construct a new thread pool with :ref:`threads` threads.
+
+        :param threads: Number of threads to start in the thread pool.
+        """
+        self._queue = Queue()
+        self._pool = [threading.Thread(target=self._worker)
+                      for _ in range(threads)]
+
+    def _worker(self):
+        """Waits for and executes jobs from the queue."""
+        while True:
+            message = self._queue.get()
+            if message is None:
+                self._queue.task_done()
+                return
+            job, args, kwargs = message
+            try:
+                job(*args, **kwargs)
+            except Exception, e:
+                log.error('thread pool worker failed', exc_info=e)
+            self._queue.task_done()
+
+    def add(self, function, *args, **kwargs):
+        """Add a job to the thread pool.
+
+        :param function: Function to run in the pool.
+        :param args: Positional arguments to pass to function.
+        :param kwargs: Keyword arguments to pass to function.
+        """
+        self._queue.put((function, args, kwargs))
+
+    def quit(self):
+        """Signal all workers to quit and block until they have."""
+        self._queue.clear()
+        for _ in range(len(self._pool)):
+            self._queue.put(None)
+        self._queue.join()
+        for thread in self._pool:
+            thread.wait()
 
 
 class WeakList(list):

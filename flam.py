@@ -290,11 +290,12 @@ class Flag(object):
         :param args: Positional arguments to pass to :func:`define_flag`.
         :param kwargs: Keyword arguments to pass to :func:`define_flag`.
         """
+        self._required = kwargs.pop('required', False)
         self._option = define_flag(*args, **kwargs)
 
     def __get__(self, instance, owner):
         value = getattr(flags, self._option.dest, self._option.default)
-        if value is optparse.NO_DEFAULT or value is None:
+        if self._required and value is optparse.NO_DEFAULT or value is None:
             raise optparse.OptionValueError('required flag --%s not defined'
                                             % self._option.dest)
         return value

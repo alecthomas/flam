@@ -293,7 +293,11 @@ class Flag(object):
         self._option = define_flag(*args, **kwargs)
 
     def __get__(self, instance, owner):
-        return getattr(flags, self._option.dest, self._option.default)
+        value = getattr(flags, self._option.dest, self._option.default)
+        if value is optparse.NO_DEFAULT or value is None:
+            raise optparse.OptionValueError('required flag --%s not defined'
+                                            % self._option.dest)
+        return value
 
 
 class ThreadPool(object):
@@ -381,6 +385,11 @@ class WeakList(list):
     def extend(self, sequence):
         for value in sequence:
             self.append(value)
+
+    def remove(self, value):
+        for entry in self:
+            if value is entry:
+                return list.remove(self, entry)
 
     def _clear_reference(self, ref):
         for i, value in enumerate(self):

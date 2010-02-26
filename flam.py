@@ -134,7 +134,7 @@ class FlagParser(optparse.OptionParser):
             result.append(self.get_usage() + '\n')
         if self.description:
             result.append(self.format_description(formatter) + '\n')
-        if self._commands:
+        if len(self._commands) > 1:
             result.append(self.format_commands(formatter))
         result.append(self.format_option_help(formatter))
         result.append(self.format_epilog(formatter))
@@ -294,11 +294,29 @@ class Flag(object):
         self._option = define_flag(*args, **kwargs)
 
     def __get__(self, instance, owner):
-        value = getattr(flags, self._option.dest, self._option.default)
+        value = getattr(flags.values, self._option.dest, self._option.default)
         if self._required and value is optparse.NO_DEFAULT or value is None:
             raise optparse.OptionValueError('required flag --%s not defined'
                                             % self._option.dest)
         return value
+
+
+class ValuesProxy(object):
+    """Acts like optparse.Values but uses defaults defined in OptionParser.
+
+    :attr values: The real optparse.Values object.
+    """
+
+    def __init__(self, parser):
+        object.__setattr__(self, '_parser', parser)
+        object.__setattr__(self, 'values', optparse.Values())
+
+    def __setattr__(self, name, value):
+        setattr(self.values, name, value)
+
+    def __getattr__(self, name):
+        option = self._parser.get_option('--' + name)
+        return getattr(self.values, name, option and option.default)
 
 
 class ThreadPool(object):
@@ -476,10 +494,10 @@ def init(args=None, usage=None, version=None, epilog=None, config=None):
     if epilog:
         flag_parser.set_epilog(epilog)
 
-    flags._update_loose(vars(flag_parser.get_default_values()))
+    flags.values._update_loose(vars(flag_parser.get_default_values()))
     if config and os.path.exists(config):
-        flag_parser.parse_flags_from_file(config, values=flags)
-    _, args = flag_parser.parse_args(args, values=flags)
+        flag_parser.parse_flags_from_file(config, values=flags.values)
+    _, args = flag_parser.parse_args(args, values=flags.values)
     return args
 
 
@@ -564,7 +582,7 @@ log.setLevel(logging.ERROR)
 log.addHandler(console)
 
 flag_parser = FlagParser()
-flags = optparse.Values()
+flags = ValuesProxy(flag_parser)
 command = flag_parser.register_command
 
 

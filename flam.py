@@ -16,8 +16,6 @@ Flam - A minimalist Python application framework
 """
 
 
-from __future__ import with_statement
-
 import inspect
 import optparse
 import os
@@ -44,8 +42,7 @@ __author__ = 'Alec Thomas <alec@swapoff.org>'
 __all__ = [
     'Error', 'Flag', 'ThreadPool', 'define_flag', 'flags', 'parse_args',
     'parse_flags_from_file', 'write_flags_to_file', 'init', 'run', 'command',
-    'log', 'fatal', 'dispatch_command', 'command', 'cached_property',
-    'WeakList',
+    'fatal', 'dispatch_command', 'command', 'cached_property', 'WeakList',
 ]
 
 
@@ -479,6 +476,7 @@ def dispatch_command(args):
     flag_parser.dispatch_command(args)
 
 
+# This is mostly here to help with testing.
 def init(args=None, usage=None, version=None, epilog=None, config=None):
     """Initialise the application.
 
@@ -486,7 +484,8 @@ def init(args=None, usage=None, version=None, epilog=None, config=None):
 
     :returns: Remaining command-line arguments after flag parsing.
     """
-    log.setLevel(logging.ERROR)
+    log_manager.set_level(logging.ERROR)
+    log_manager.log_to_console(True)
     if version:
         flag_parser.set_version(version)
     if usage:
@@ -524,7 +523,9 @@ def run(main=None, args=None, usage=None, version=None, epilog=None,
                   provided, the docstring from main will be used.
     :param version: The version of the application. If provided, adds a
                     --version flag.
+    :param epilog: Optional help text epilog.
     :param config: Configuration file to load flags from.
+
     :raises Error: If main is not provided and no commands are defined with
                    :func:`command`.
     """
@@ -564,22 +565,48 @@ def execute(command, **kwargs):
 def _set_logging_flag(option, opt_str, value, parser):
     """Flag callback for setting the log level."""
     level = getattr(logging, value.upper(), 'ERROR')
-    log.setLevel(level)
+    log_manager.set_level(level)
     flags.logging = value
 
 
-# Command dispatching
-log_formatter = logging.Formatter(
-    '%(asctime)s %(name)-12s %(levelname)-8s %(message)s',
-    '%Y-%m-%d %H:%M:%S',
-    )
-console = logging.StreamHandler()
-console.setLevel(logging.DEBUG)
-console.setFormatter(log_formatter)
+class NullHandler(logging.Handler):
+    def emit(self, record):
+        pass
 
-log = logging.getLogger('flam')
-log.setLevel(logging.ERROR)
-log.addHandler(console)
+
+class LogManager(object):
+    """Convenience class for managing loggers.
+
+    Sets up a logger named 'flam' that logs to level>=ERROR to stderr.
+    """
+
+    FORMAT = '%(asctime)s %(name)-12s %(levelname)-8s %(message)s'
+    TIME_FORMAT = '%Y%m%d %H%M%S'
+
+    def __init__(self):
+        self.formatter = logging.Formatter(self.FORMAT, self.TIME_FORMAT)
+        self.console = logging.StreamHandler()
+        self.console.setLevel(logging.DEBUG)
+        self.console.setFormatter(self.formatter)
+        self.root = logging.getLogger()
+        self.root.setLevel(logging.ERROR)
+        self.root.addHandler(self.console)
+        self.root.addHandler(NullHandler())
+
+    def get_logger(self, name):
+        return logging.getLogger(name)
+
+    def set_level(self, level):
+        self.root.setLevel(level)
+
+    def log_to_console(self, enable):
+        switch = self.root.addHandler if enable else self.root.removeHandler
+        switch(self.console)
+
+
+log_manager = LogManager()
+get_logger = log_manager.get_logger
+log = log_manager.get_logger('flam')
 
 flag_parser = FlagParser()
 flags = ValuesProxy(flag_parser)

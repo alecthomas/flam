@@ -33,9 +33,9 @@ try:
     try:
         __version__ = get_distribution('flam').version
     except ResolutionError:
-        __version__ = None # unknown
+        __version__ = None  # unknown
 except ImportError:
-    __version__ = None # unknown
+    __version__ = None  # unknown
 
 
 __author__ = 'Alec Thomas <alec@swapoff.org>'
@@ -217,11 +217,11 @@ class FlagParser(optparse.OptionParser):
             args = []
 
         if args:
-            raise CommandError('too many arguments provided to %r, try "help"' %
-                            command_description)
+            raise CommandError(
+                'too many arguments provided to %r, try "help"' %
+                command_description)
 
         return matched_command(*command_args)
-
 
     def parse_flags_from_file(self, filename, values=None):
         """Parse command line flags from a file.
@@ -318,7 +318,7 @@ class ValuesProxy(object):
 
 class ThreadPool(object):
     """A thread pool manager."""
-    
+
     def __init__(self, threads=8):
         """Construct a new thread pool with :ref:`threads` threads.
 

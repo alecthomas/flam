@@ -8,9 +8,9 @@
 #
 # Author: Alec Thomas <alec@swapoff.org>
 
-"""flam /flæm/ noun, verb, flammed, flam⋅ming. Informal. –noun 1. a deception
-or trick. 2. a falsehood; lie. –verb (used with object), verb (used without
-object) 3. to deceive; delude; cheat.
+"""flam /flæm/ noun, verb, flammed, flam⋅ming. Informal. –noun 1. a
+deception or trick. 2. a falsehood; lie. –verb (used with object), verb (used
+without object) 3. to deceive; delude; cheat.
 
 Flam - A minimalist Python application framework
 """
@@ -279,7 +279,11 @@ class FlagParser(optparse.OptionParser):
 
 
 class Flag(object):
-    """A convenience property for defining and accessing flags."""
+    """A convenience property for defining and accessing flags.
+
+    This is a thin wrapper around :meth:`optparse.OptionParser.add_option`.
+    Refer to optparse documentation for details.
+    """
 
     def __init__(self, *args, **kwargs):
         """Define a new flag property.
@@ -437,7 +441,8 @@ class cached_property(object):
 def parse_args(args=None):
     """Parse command-line arguments into the global :data:`flags` object.
 
-    :param args: Command-line args, not including argv[0]. Defaults to sys.argv[1:]
+    :param args: Command-line args, not including argv[0]. Defaults to
+                 sys.argv[1:]
     :returns: Positional arguments from :data:`args`.
     """
     _, args = flag_parser.parse_args(args, values=flags)
@@ -462,7 +467,7 @@ def write_flags_to_file(filename):
 def define_flag(*args, **kwargs):
     """Define a flag.
 
-    This has the same semantics as :meth:`FlagParser.add_option`.
+    This has the same semantics as :meth:`optparse.OptionParser.add_option`.
 
     :param args: Positional arguments passed through to add_option.
     :param kwargs: Keyword arguments passed through to add_option.

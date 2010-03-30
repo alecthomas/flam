@@ -55,6 +55,8 @@ class CommandError(Error):
 
 
 def _check_list_option(option, opt, value):
+    if isinstance(value, list):
+        return value
     return [i.strip() for i in value.split(',')]
 
 
@@ -66,6 +68,10 @@ class FlagOption(optparse.Option):
     TYPES = optparse.Option.TYPES + ("list",)
     TYPE_CHECKER = optparse.Option.TYPE_CHECKER.copy()
     TYPE_CHECKER['list'] = _check_list_option
+
+    def __init__(self, *args, **kwargs):
+        self.required = kwargs.pop('required', False)
+        optparse.Option.__init__(self, *args, **kwargs)
 
 
 class FlagParser(optparse.OptionParser):
@@ -291,12 +297,12 @@ class Flag(object):
         :param args: Positional arguments to pass to :func:`define_flag`.
         :param kwargs: Keyword arguments to pass to :func:`define_flag`.
         """
-        self._required = kwargs.pop('required', False)
         self._option = define_flag(*args, **kwargs)
 
     def __get__(self, instance, owner):
         value = getattr(flags.values, self._option.dest, self._option.default)
-        if self._required and (value is optparse.NO_DEFAULT or value is None):
+        if self._option.required and (value is optparse.NO_DEFAULT
+                                      or value is None):
             raise optparse.OptionValueError('required flag --%s not defined'
                                             % self._option.dest)
         return value

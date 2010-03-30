@@ -154,17 +154,18 @@ class FlagParser(optparse.OptionParser):
             args = ['<%s>' % arg for arg in argspec.args]
             if defaults_len:
                 arg_spec = ' '.join(args[:-defaults_len])
-                optional_spec = ' '.join(args[-defaults_len:])
+                optional_spec = args[-defaults_len:]
             else:
                 arg_spec = ' '.join(args)
-                optional_spec = ''
+                optional_spec = []
             if argspec.varargs:
-                optional_spec += ' <' + argspec.varargs + '> ...'
+                optional_spec.extend(['<' + argspec.varargs + '>', '...'])
+            optional_spec = ' '.join(optional_spec)
             if optional_spec:
                 optional_spec = '[' + optional_spec.strip() + ']'
             command_args_help = ' '.join(command_args)
-            result.append('  ' + ' '.join([command_args_help, arg_spec,
-                                          optional_spec]))
+            result.append(' '.join(filter(None, [command_args_help, arg_spec,
+                                                 optional_spec])))
             if help:
                 result.extend('    ' + line for line in help.splitlines())
             result.append('')

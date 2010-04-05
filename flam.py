@@ -429,6 +429,13 @@ class WeakList(list):
         return '[%s]' % ', '.join(str(i) for i in self)
 
 
+class Log(object):
+    """A class property that returns a Logger object scoped to the owning
+    class."""
+    def __get__(self, instance, owner):
+        return log_manager.get_logger(owner.__name__)
+
+
 class cached_property(object):
     """A property that caches the result of its implementation function."""
 

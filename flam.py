@@ -240,25 +240,6 @@ class FlagParser(optparse.OptionParser):
         args = self._load_flags(filename)
         return self.parse_args(args, values=values)
 
-    def write_flags_to_file(self, filename, flags):
-        with open(filename, 'wt') as fd:
-            for key, value in vars(flags).iteritems():
-                # TODO(alec) This is not reliable as the key uses the value of
-                # "dest", while we use the flag name.
-                option = self.get_option('--' + key)
-                if value != option.default:
-                    value = self._serialise_option_value(value)
-                    fd.write('%s = %s\n' % (key, value))
-
-    def _serialise_option_value(self, value):
-        # TODO(alec) This is kinda ugly. It'd be better if the
-        # Option object itself supported serialisation.
-        if isinstance(value, (list, tuple)):
-            return ','.join(map(str, value))
-        elif value is None:
-            return ''
-        return str(value)
-
     # Internal methods
     def _flag_loader(self, option, opt_str, value, parser):
         args = self._load_flags(value)
@@ -266,19 +247,24 @@ class FlagParser(optparse.OptionParser):
             parser.rargs.insert(0, arg)
 
     def _load_flags(self, file):
-        args = []
         if isinstance(file, basestring):
             file = open(file)
             close = True
         else:
             close = False
+        section = None
+        args = {}
         try:
             for line in file:
                 line = line.strip()
                 if not line or line.startswith('#'):
                     continue
-                key, value = line.split('=', 1)
-                args.append('--' + key.strip() + '=' + value.strip())
+                if line.startswith('['):
+                    section = line[1:-1]
+                elif not section or section == self.get_prog_name():
+                    key, value = line.split('=', 1)
+                    args[key.strip()] = value.strip()
+            args = ['--%s=%s' % i for i in args.items()]
             return args
         finally:
             if close:
@@ -473,11 +459,6 @@ def parse_flags_from_file(filename):
     return True
 
 
-def write_flags_to_file(filename):
-    """Write global flags to a file."""
-    flag_parser.write_flags_to_file(filename, flags)
-
-
 def define_flag(*args, **kwargs):
     """Define a flag.
 
@@ -524,8 +505,8 @@ def run(main=None, args=None, usage=None, version=None, epilog=None,
     """Initialise and run the application.
 
     This function parses and updates the global flags object, configures
-    logging, and passes any remaining arguments through to the main function. If
-    main() returns a false value
+    logging, and passes any remaining arguments through to the main function.
+    If main() returns a false value
 
     >>> def main(args):
     ...   print args

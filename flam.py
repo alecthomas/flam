@@ -41,8 +41,8 @@ except ImportError:
 __author__ = 'Alec Thomas <alec@swapoff.org>'
 __all__ = [
     'Error', 'Flag', 'ThreadPool', 'define_flag', 'flags', 'parse_args',
-    'parse_flags_from_file', 'write_flags_to_file', 'init', 'run', 'command',
-    'fatal', 'dispatch_command', 'command', 'cached_property', 'WeakList',
+    'parse_flags_from_file', 'init', 'run', 'command', 'fatal',
+    'dispatch_command', 'command', 'cached_property', 'WeakList',
 ]
 
 
@@ -107,6 +107,12 @@ class FlagParser(optparse.OptionParser):
     def set_epilog(self, epilog):
         """Set help epilog text."""
         self.epilog = epilog
+
+    def add_option(self, *args, **kwargs):
+        if 'help' in kwargs and kwargs.get('default') != None \
+                and '%default' not in kwargs['help']:
+            kwargs['help'] += ' [%default]'
+        return optparse.OptionParser.add_option(self, *args, **kwargs)
 
     def set_version(self, version):
         """Set the application version.
@@ -418,8 +424,11 @@ class WeakList(list):
 class Log(object):
     """A class property that returns a Logger object scoped to the owning
     class."""
+    def __init__(self, name=None):
+        self._name = name
+
     def __get__(self, instance, owner):
-        return log_manager.get_logger(owner.__name__)
+        return log_manager.get_logger(self._name or owner.__name__)
 
 
 class cached_property(object):

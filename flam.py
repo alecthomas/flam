@@ -20,6 +20,7 @@ import inspect
 import optparse
 import os
 import logging
+import logging.handlers
 import subprocess
 import sys
 import threading
@@ -44,6 +45,10 @@ __all__ = [
     'parse_flags_from_file', 'init', 'run', 'command', 'fatal',
     'dispatch_command', 'command', 'cached_property', 'WeakList',
 ]
+
+
+# --logging flag must be updated separately
+DEFAULT_LOG_LEVEL = logging.INFO
 
 
 class Error(Exception):
@@ -112,7 +117,9 @@ class FlagParser(optparse.OptionParser):
         if 'help' in kwargs and kwargs.get('default') != None \
                 and '%default' not in kwargs['help']:
             kwargs['help'] += ' [%default]'
-        return optparse.OptionParser.add_option(self, *args, **kwargs)
+        option = optparse.OptionParser.add_option(self, *args, **kwargs)
+        self.option_list.sort(key=lambda o: o.dest)
+        return option
 
     def set_version(self, version):
         """Set the application version.
@@ -493,8 +500,7 @@ def init(args=None, usage=None, version=None, epilog=None, config=None):
 
     :returns: Remaining command-line arguments after flag parsing.
     """
-    log_manager.set_level(logging.ERROR)
-    log_manager.log_to_console(True)
+    log_manager.set_level(DEFAULT_LOG_LEVEL)
     if version:
         flag_parser.set_version(version)
     if usage:
@@ -594,12 +600,8 @@ class LogManager(object):
 
     def __init__(self):
         self.formatter = logging.Formatter(self.FORMAT, self.TIME_FORMAT)
-        self.console = logging.StreamHandler()
-        self.console.setLevel(logging.DEBUG)
-        self.console.setFormatter(self.formatter)
         self.root = logging.getLogger()
-        self.root.setLevel(logging.ERROR)
-        self.root.addHandler(self.console)
+        self.root.setLevel(DEFAULT_LOG_LEVEL)
         self.root.addHandler(NullHandler())
 
     def get_logger(self, name):
@@ -608,9 +610,26 @@ class LogManager(object):
     def set_level(self, level):
         self.root.setLevel(level)
 
-    def log_to_console(self, enable):
-        switch = self.root.addHandler if enable else self.root.removeHandler
-        switch(self.console)
+    def log_to_console(self, level=logging.DEBUG):
+        handler = logging.StreamHandler()
+        handler.setLevel(logging.DEBUG)
+        handler.setFormatter(self.formatter)
+        self.root.addHandler(handler)
+
+    def log_to_syslog(self, host, port, facility='local4',
+                      level=logging.DEBUG):
+        handler = logging.handlers.SysLogHandler((host, port), facility)
+        handler.setLevel(level)
+        handler.setFormatter(self.formatter)
+        self.root.addHandler(handler)
+
+    def log_to_file(self, filename, max_bytes=1024 * 1024 * 10,
+                    backup_count=10, level=logging.DEBUG):
+        handler = logging.handlers.RotatingFileHandler(
+            filename, maxBytes=max_bytes, backupCount=backup_count)
+        handler.setLevel(level)
+        handler.setFormatter(self.formatter)
+        self.root.addHandler(handler)
 
 
 log_manager = LogManager()
@@ -629,10 +648,8 @@ def help():
 
 
 define_flag('--logging', type=str, action='callback',
-            callback=_set_logging_flag,
-            help='set log level to debug, info, warning, error '
-                 'or fatal [%default]',
-            metavar='LEVEL', default='warning')
+            callback=_set_logging_flag, metavar='LEVEL', default='info',
+            help='set log level to debug, info, warning, error or fatal')
 
 
 if __name__ == '__main__':

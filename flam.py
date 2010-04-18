@@ -246,7 +246,8 @@ class FlagParser(optparse.OptionParser):
     def parse_flags_from_file(self, filename, values=None):
         """Parse command line flags from a file.
 
-        The format of the file is one flag per line, key = value.
+        The format of the file is one flag per line, "key = value" for flags
+        that take a value, "key" for boolean flags.
 
         :param values: Values object to update.
         """
@@ -275,9 +276,14 @@ class FlagParser(optparse.OptionParser):
                 if line.startswith('['):
                     section = line[1:-1]
                 elif not section or section == self.get_prog_name():
-                    key, value = line.split('=', 1)
-                    args[key.strip()] = value.strip()
-            args = ['--%s=%s' % i for i in args.items()]
+                    key, _, value = line.partition('=')
+                    if value:
+                        value = value.strip()
+                    else:
+                        value = None
+                    args[key.strip()] = value
+            args = ['--%s%s' % (k, '' if v is None else '=' + v)
+                    for k, v in args.items()]
             return args
         finally:
             if close:

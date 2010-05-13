@@ -246,8 +246,8 @@ class FlagParser(optparse.OptionParser):
     def parse_flags_from_file(self, filename, values=None):
         """Parse command line flags from a file.
 
-        The format of the file is one flag per line, "key = value" for flags
-        that take a value, "key" for boolean flags.
+        The format of the file is one flag per line, "key = value". Boolean
+        flags are set via "key = (true|false)".
 
         :param values: Values object to update.
         """
@@ -277,11 +277,17 @@ class FlagParser(optparse.OptionParser):
                     section = line[1:-1]
                 elif not section or section == self.get_prog_name():
                     key, _, value = line.partition('=')
-                    if value:
-                        value = value.strip()
-                    else:
-                        value = None
-                    args[key.strip()] = value
+                    if not value:
+                        raise optparse.OptionValueError(
+                            'invalid configuration entry %r' % line)
+                    key = key.strip()
+                    value = value.strip()
+                    if value.strip() == 'true':
+                        args[key] = None
+                    # FIXME(alec) optparse does not support "negation" of
+                    # boolean flags...I'm not sure what the solution is here.
+                    elif value.strip() != 'false':
+                        args[key] = value
             args = ['--%s%s' % (k, '' if v is None else '=' + v)
                     for k, v in args.items()]
             return args

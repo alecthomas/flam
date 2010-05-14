@@ -65,14 +65,19 @@ def _check_list_option(option, opt, value):
     return [i.strip() for i in value.split(',')]
 
 
+def _check_filename_option(option, opt, value):
+    return os.path.expanduser(value)
+
+
 class FlagOption(optparse.Option):
     """Custom FlagParser option types.
 
     Currently supports only list.
     """
-    TYPES = optparse.Option.TYPES + ("list",)
+    TYPES = optparse.Option.TYPES + ('list', 'filename')
     TYPE_CHECKER = optparse.Option.TYPE_CHECKER.copy()
     TYPE_CHECKER['list'] = _check_list_option
+    TYPE_CHECKER['filename'] = _check_filename_option
 
     def __init__(self, *args, **kwargs):
         self.required = kwargs.pop('required', False)
@@ -104,7 +109,7 @@ class FlagParser(optparse.OptionParser):
         kwargs.setdefault('option_class', FlagOption)
         optparse.OptionParser.__init__(self, *args, **kwargs)
         self.set_usage('%prog [<flags>] <command> ...')
-        self.add_option('--flags', metavar='FILE', type=str,
+        self.add_option('--flags', metavar='FILE', type='filename',
                         action='callback', help='load flags from FILE',
                         callback=self._flag_loader, default=None)
         self._commands = {}

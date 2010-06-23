@@ -42,8 +42,8 @@ except ImportError:
 __author__ = 'Alec Thomas <alec@swapoff.org>'
 __all__ = [
     'Error', 'Flag', 'ThreadPool', 'define_flag', 'flags', 'parse_args',
-    'parse_flags_from_file', 'init', 'run', 'command', 'fatal',
-    'dispatch_command', 'command', 'cached_property', 'WeakList',
+    'parse_flags_from_file', 'run', 'command', 'fatal', 'dispatch_command',
+    'cached_property', 'WeakList',
 ]
 
 
@@ -194,11 +194,11 @@ class FlagParser(optparse.OptionParser):
         """Dispatch to command functions registered with @command.
 
         :param args: Command-line argument list.
-        :returns: Tuple of (function, args)
+        :returns: True if command was dispatched.
         """
         # If only "help" is registered, assume we don't want commands
         if len(self._commands) == 1:
-            return
+            return False
 
         if not args:
             raise CommandError('command not provided, try "help"')
@@ -246,7 +246,8 @@ class FlagParser(optparse.OptionParser):
                 'too many arguments provided to %r, try "help"' %
                 command_description)
 
-        return matched_command(*command_args)
+        matched_command(*command_args)
+        return True
 
     def parse_flags_from_file(self, filename, values=None):
         """Parse command line flags from a file.
@@ -506,11 +507,11 @@ def define_flag(*args, **kwargs):
 
 def dispatch_command(args):
     """Dispatch to a command registered with @command."""
-    flag_parser.dispatch_command(args)
+    return flag_parser.dispatch_command(args)
 
 
 # This is mostly here to help with testing.
-def init(args=None, usage=None, version=None, epilog=None, config=None):
+def _init(args=None, usage=None, version=None, epilog=None, config=None):
     """Initialise the application.
 
     See :func:`run` for further documentation.
@@ -533,23 +534,19 @@ def init(args=None, usage=None, version=None, epilog=None, config=None):
 
 
 def run(main=None, args=None, usage=None, version=None, epilog=None,
-        config=None):
+        config=None, init=None):
     """Initialise and run the application.
 
     This function parses and updates the global flags object, configures
     logging, and passes any remaining arguments through to the main function.
-    If main() returns a false value
 
     >>> def main(args):
     ...   print args
     >>> run(main, ['hello', 'world'])
     ['hello', 'world']
 
-    :param main: Main function to call, with the signature main(args). After
-                 execution of main(), any commands registered with @command
-                 will be dispatched. This allows main() to be used as
-                 initialisation code. If main() returns True, commands will not
-                 be dispatched.
+    :param main: Main function to call if commands are not registered or
+                 commands are not passed, with the signature main(args).
     :param args: Command-line arguments. Will default to sys.argv[1:].
     :param usage: A usage string, displayed when --help is passed. If not
                   provided, the docstring from main will be used.
@@ -557,20 +554,25 @@ def run(main=None, args=None, usage=None, version=None, epilog=None,
                     --version flag.
     :param epilog: Optional help text epilog.
     :param config: Configuration file to load flags from.
+    :param init: Initialisation function init(args).
 
     :raises Error: If main is not provided and no commands are defined with
                    :func:`command`.
     """
     if usage is None:
         usage = inspect.getdoc(main)
-    args = init(args=args, usage=usage, version=version, epilog=epilog,
-                config=config)
-    if main and main(args):
-        return
-    try:
-        dispatch_command(args)
-    except CommandError, e:
-        fatal(e)
+    args = _init(args=args, usage=usage, version=version, epilog=epilog,
+                 config=config)
+    if init:
+        init(args)
+    if args:
+        try:
+            if dispatch_command(args):
+                main = None
+        except CommandError, e:
+            fatal(e)
+    if main:
+        main(args)
 
 
 def fatal(*args):

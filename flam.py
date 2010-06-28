@@ -62,6 +62,10 @@ class CommandError(Error):
     """An error in the top-level command parsing code."""
 
 
+class LoggingError(Error):
+    """A logging related error occurred."""
+
+
 def _check_list_option(option, opt, value):
     if isinstance(value, list):
         return value
@@ -601,7 +605,10 @@ def execute(command, **kwargs):
 
 def _set_logging_flag(option, opt_str, value, parser):
     """Flag callback for setting the log level."""
-    level = getattr(logging, value.upper(), 'ERROR')
+    name = value.upper()
+    level = getattr(logging, name, globals().get(name, None))
+    if level is None:
+        raise LoggingError('unknown logging level %r' % name)
     log_manager.set_level(level)
     flags.logging = value
 
@@ -632,21 +639,20 @@ class LogManager(object):
     def set_level(self, level):
         self.root.setLevel(level)
 
-    def log_to_console(self, level=logging.DEBUG):
+    def log_to_console(self, level=FINEST):
         handler = logging.StreamHandler()
-        handler.setLevel(logging.DEBUG)
+        handler.setLevel(level)
         handler.setFormatter(self.formatter)
         self.root.addHandler(handler)
 
-    def log_to_syslog(self, host, port, facility='local4',
-                      level=logging.DEBUG):
+    def log_to_syslog(self, host, port, facility='local4', level=FINEST):
         handler = logging.handlers.SysLogHandler((host, port), facility)
         handler.setLevel(level)
         handler.setFormatter(self.formatter)
         self.root.addHandler(handler)
 
     def log_to_file(self, filename, max_bytes=1024 * 1024 * 10,
-                    backup_count=10, level=logging.DEBUG):
+                    backup_count=10, level=FINEST):
         handler = logging.handlers.RotatingFileHandler(
             filename, maxBytes=max_bytes, backupCount=backup_count)
         handler.setLevel(level)
@@ -716,7 +722,8 @@ def help():
 
 define_flag('--logging', type=str, action='callback',
             callback=_set_logging_flag, metavar='LEVEL', default='info',
-            help='set log level to debug, info, warning, error or fatal')
+            help='set log level to finest, finer, fine, debug, info, warning, '
+                 'error or fatal')
 
 
 if __name__ == '__main__':

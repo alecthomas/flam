@@ -49,6 +49,9 @@ __all__ = [
 
 # --logging flag must be updated separately
 DEFAULT_LOG_LEVEL = logging.INFO
+FINE = 7
+FINER = 5
+FINEST = 1
 
 
 class Error(Exception):
@@ -650,6 +653,51 @@ class LogManager(object):
         handler.setFormatter(self.formatter)
         self.root.addHandler(handler)
 
+
+class Logger(logging.Logger):
+    """Custom Logger implementing fine, finer, finest."""
+
+    def fine(self, msg, *args, **kwargs):
+        """
+        Log 'msg % args' with severity 'FINE'.
+
+        To pass exception information, use the keyword argument exc_info with
+        a true value, e.g.
+
+        logger.fine("Houston, we have a %s", "thorny problem", exc_info=1)
+        """
+        if self.isEnabledFor(FINE):
+            self._log(FINE, msg, args, **kwargs)
+
+    def finer(self, msg, *args, **kwargs):
+        """
+        Log 'msg % args' with severity 'FINER'.
+
+        To pass exception information, use the keyword argument exc_info with
+        a true value, e.g.
+
+        logger.finer("Houston, we have a %s", "thorny problem", exc_info=1)
+        """
+        if self.isEnabledFor(FINER):
+            self._log(FINER, msg, args, **kwargs)
+
+    def finest(self, msg, *args, **kwargs):
+        """
+        Log 'msg % args' with severity 'FINEST'.
+
+        To pass exception information, use the keyword argument exc_info with
+        a true value, e.g.
+
+        logger.finest("Houston, we have a %s", "thorny problem", exc_info=1)
+        """
+        if self.isEnabledFor(FINEST):
+            self._log(FINEST, msg, args, **kwargs)
+
+
+logging.addLevelName(FINE, 'FINE')
+logging.addLevelName(FINER, 'FINER')
+logging.addLevelName(FINEST, 'FINEST')
+logging.setLoggerClass(Logger)
 
 log_manager = LogManager()
 get_logger = log_manager.get_logger

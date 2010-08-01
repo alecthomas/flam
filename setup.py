@@ -6,8 +6,8 @@ except ImportError:
 
 setup(
     name='flam',
-    url='http://swapoff.org/flam',
-    download_url='http://swapoff.org/flam',
+    url='http://github.com/alecthomas/flam',
+    download_url='http://github.com/alecthomas/flam',
     version='0.4',
     description='A minimalist Python application framework.',
     license='BSD',

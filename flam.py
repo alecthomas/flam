@@ -88,6 +88,7 @@ class FlagOption(optparse.Option):
 
     def __init__(self, *args, **kwargs):
         self.required = kwargs.pop('required', False)
+        self.long_help = kwargs.pop('long_help', False)
         optparse.Option.__init__(self, *args, **kwargs)
 
 

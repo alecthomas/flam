@@ -43,7 +43,7 @@ __author__ = 'Alec Thomas <alec@swapoff.org>'
 __all__ = [
     'Error', 'Flag', 'ThreadPool', 'define_flag', 'flags', 'parse_args',
     'parse_flags_from_file', 'run', 'command', 'fatal', 'dispatch_command',
-    'cached_property', 'WeakList',
+    'cached_property', 'WeakList', 'hidden_command',
 ]
 
 
@@ -121,6 +121,7 @@ class FlagParser(optparse.OptionParser):
                         action='callback', help='load flags from FILE',
                         callback=self._flag_loader, default=None)
         self._commands = {}
+        self._hidden_commands = []
 
     def set_epilog(self, epilog):
         """Set help epilog text."""
@@ -149,6 +150,12 @@ class FlagParser(optparse.OptionParser):
         self.version = version
         self._add_version_option()
 
+    def hide_command(self, function):
+        """Hide a command from the help output."""
+        commands = tuple(function.__name__.split('_'))
+        self._hidden_commands.append(commands)
+        return self.register_command(function)
+
     def register_command(self, function):
         """Register a command."""
         commands = tuple(function.__name__.split('_'))
@@ -174,6 +181,8 @@ class FlagParser(optparse.OptionParser):
         result = []
         result.append('Commands:')
         for command_args, command in sorted(self._commands.iteritems()):
+            if command_args in self._hidden_commands:
+                continue
             help = inspect.getdoc(command)
             argspec = inspect.getargspec(command)
             defaults_len = len(argspec.defaults or [])
@@ -713,6 +722,7 @@ log = log_manager.get_logger('flam')
 flag_parser = FlagParser()
 flags = ValuesProxy(flag_parser)
 command = flag_parser.register_command
+hidden_command = flag_parser.hide_command
 
 
 @command

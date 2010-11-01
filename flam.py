@@ -655,8 +655,8 @@ class LogManager(object):
         handler.setFormatter(self.formatter)
         self.root.addHandler(handler)
 
-    def log_to_syslog(self, host, port, facility='local4', level=FINEST):
-        handler = logging.handlers.SysLogHandler((host, port), facility)
+    def log_to_syslog(self, address, facility='local4', level=FINEST):
+        handler = logging.handlers.SysLogHandler(address, facility)
         handler.setLevel(level)
         handler.setFormatter(self.formatter)
         self.root.addHandler(handler)

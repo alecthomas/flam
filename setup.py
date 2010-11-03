@@ -8,7 +8,7 @@ setup(
     name='flam',
     url='http://github.com/alecthomas/flam',
     download_url='http://github.com/alecthomas/flam',
-    version='0.5',
+    version='0.6',
     description='A minimalist Python application framework.',
     license='BSD',
     platforms=['any'],

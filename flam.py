@@ -299,8 +299,8 @@ class FlagParser(optparse.OptionParser):
                 if line.startswith('['):
                     section = line[1:-1]
                 elif not section or section == self.get_prog_name():
-                    key, _, value = line.partition('=')
-                    if not value:
+                    key, sep, value = line.partition('=')
+                    if not sep:
                         raise optparse.OptionValueError(
                             'invalid configuration entry %r' % line)
                     key = key.strip()
